@@ -94,6 +94,7 @@ export default function App() {
 
   const handleSubmit = async () => {
     setSubmitting(true)
+    console.log('submitting data:', JSON.stringify(data, null, 2))
     setError(null)
     try {
       // 1. Insert main application
