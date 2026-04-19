@@ -187,7 +187,7 @@ export default function App() {
       }
 
       // 6. Send confirmation email
-      await sendConfirmationEmail(data.email, data.first_name)
+      //await sendConfirmationEmail(data.email, data.first_name)
 
       setSubmitted(true)
     } catch (err) {
