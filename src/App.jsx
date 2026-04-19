@@ -187,7 +187,9 @@ export default function App() {
       }
 
       // 6. Send confirmation email
-      //await sendConfirmationEmail(data.email, data.first_name)
+      await supabase.functions.invoke('send-confirmation-email', {
+  body: { email: data.email, firstName: data.first_name }
+})
 
       setSubmitted(true)
     } catch (err) {
