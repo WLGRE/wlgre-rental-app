@@ -42,15 +42,15 @@ export default function StepEmployment({ data, onChange }) {
             ))}
           </Select>
           <Select value={data.job_months ?? ''} onChange={set('job_months')}>
-            <option value="">Starting month</option>
-            {MONTHS.map((m, i) => (
-              <option key={i} value={i}>{m}</option>
-            ))}
-          </Select>
+  <option value="">Months</option>
+  {Array.from({ length: 12 }, (_, i) => (
+    <option key={i} value={i}>{i === 1 ? '1 month' : `${i} months`}</option>
+  ))}
+</Select>
         </div>
       </Field>
 
-      <Field label="Gross monthly income" required>
+      <Field label="Gross Monthly Income" required>
         <Input
           type="number"
           value={data.monthly_income}
