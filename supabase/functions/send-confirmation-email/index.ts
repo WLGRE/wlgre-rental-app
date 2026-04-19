@@ -2,7 +2,16 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const RESEND_KEY = 're_2h2yU6gC_APF1rkn3CoooaSXyj3eQjJiB'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   const { email, firstName } = await req.json()
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -44,6 +53,6 @@ serve(async (req) => {
 
   const data = await res.json()
   return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 })

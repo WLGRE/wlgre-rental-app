@@ -7,6 +7,7 @@ import StepReferences from './steps/StepReferences.jsx'
 import StepDocuments from './steps/StepDocuments.jsx'
 import StepReview from './steps/StepReview.jsx'
 import './App.css'
+import logo from './WLGRE_LOGO.jpg'
 
 const STEPS = [
   { id: 'personal',    label: 'Personal',    title: 'Personal information',   subtitle: 'Tell us about yourself' },
@@ -222,14 +223,10 @@ export default function App() {
       {/* Header */}
       <header className="app-header">
         <div className="brand-wrap">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="28" height="28" rx="6" fill="#c8a96e" fillOpacity="0.15"/>
-            <path d="M7 8L10.5 18L14 11L17.5 18L21 8" stroke="#c8a96e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M9 20h10" stroke="#c8a96e" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
+          <img src={logo} alt="WLGRE" style={{ height: '36px', width: 'auto' }} />
           <span className="brand">WLGRE</span>
         </div>
-        <span className="header-label">Rental Application</span>
+       
       </header>
 
       {/* Progress bar */}
