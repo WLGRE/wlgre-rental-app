@@ -19,66 +19,21 @@ const STEPS = [
 ]
 
 const initialData = {
-  // Personal
   first_name: '', last_name: '', email: '', phone: '',
   current_address: '', move_reason: '', desired_move_in: '',
-  // Employment
   employer_name: '', position: '', employment_status: '',
   employer_phone: '', job_years: '', job_months: '', monthly_income: '',
   housing_assistance: '', assistance_type: '', assistance_amount: '',
-  // Household
   occupants: '', has_pets: false, pet_details: '', pet_info: {},
   household_members: [],
-  // References
   personal_references: [
     { name: '', relationship: '', phone: '', email: '' },
     { name: '', relationship: '', phone: '', email: '' },
   ],
-  // Documents
   files: {},
 }
 
-const RESEND_KEY = 're_2h2yU6gC_APF1rkn3CoooaSXyj3eQjJiB'
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-
-async function sendConfirmationEmail(applicantEmail, firstName) {
-  await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'WLGRE <no-reply@wlgre.com>',
-      to: [applicantEmail],
-      subject: 'We received your rental application',
-      html: `
-        <div style="font-family:'DM Sans',sans-serif;max-width:560px;margin:0 auto;padding:40px 24px;color:#1a1a18;">
-          <div style="margin-bottom:32px;">
-            <span style="font-family:'Playfair Display',Georgia,serif;font-size:24px;color:#1a1a18;">WLGRE</span>
-          </div>
-          <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:400;margin-bottom:16px;color:#1a1a18;">
-            Application received, ${firstName}.
-          </h1>
-          <p style="font-size:16px;line-height:1.7;color:#4a4a45;margin-bottom:24px;">
-            Thank you for submitting your rental application. We've received everything and will be in touch shortly to let you know next steps.
-          </p>
-          <div style="background:#fdf8ee;border:1px solid #e4e0d8;border-radius:12px;padding:20px 24px;margin-bottom:32px;">
-            <p style="font-size:14px;color:#8a8a82;margin-bottom:4px;">What happens next</p>
-            <p style="font-size:15px;color:#4a4a45;line-height:1.6;">
-              Our team will review your application, verify references, and reach out within 2–3 business days. If we need anything additional, we'll contact you at this email address.
-            </p>
-          </div>
-          <p style="font-size:14px;color:#8a8a82;">
-            Questions? Reply to this email or reach us at <a href="mailto:wlgre@wlgre.com" style="color:#b8964a;">wlgre@wlgre.com</a>
-          </p>
-          <hr style="border:none;border-top:1px solid #e4e0d8;margin:32px 0;">
-          <p style="font-size:12px;color:#8a8a82;">WLGRE Properties · wlgre.com</p>
-        </div>
-      `,
-    }),
-  })
-}
 
 export default function App() {
   const [step, setStep] = useState(0)
@@ -86,19 +41,66 @@ export default function App() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
+  const [validationErrors, setValidationErrors] = useState([])
 
   const isFirst = step === 0
   const isLast = step === STEPS.length - 1
 
-  const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
-  const prev = () => setStep((s) => Math.max(s - 1, 0))
+  const validate = (stepIndex) => {
+    const errors = []
+
+    if (stepIndex === 0) {
+      if (!data.first_name.trim()) errors.push('First name is required.')
+      if (!data.last_name.trim()) errors.push('Last name is required.')
+      if (!data.email.trim()) errors.push('Email is required.')
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.push('Enter a valid email address.')
+      if (!data.phone.trim()) errors.push('Phone number is required.')
+    }
+
+    if (stepIndex === 1) {
+      if (!data.employer_name.trim()) errors.push('Employer name is required.')
+      if (!data.monthly_income) errors.push('Monthly income is required.')
+      else if (isNaN(data.monthly_income) || Number(data.monthly_income) < 0) errors.push('Enter a valid monthly income.')
+    }
+
+    if (stepIndex === 2) {
+      if (!data.occupants) errors.push('Total occupants is required.')
+      else if (isNaN(data.occupants) || Number(data.occupants) < 1) errors.push('At least 1 occupant is required.')
+    }
+
+    if (stepIndex === 3) {
+      const validRefs = (data.personal_references || []).filter(r => r.name.trim() && r.phone.trim())
+      if (validRefs.length < 2) errors.push('At least 2 references with name and phone are required.')
+    }
+
+    if (stepIndex === 4) {
+      if (!data.files?.id) errors.push('Government-issued ID is required.')
+      if (!data.files?.paystub) errors.push('A recent pay stub is required.')
+    }
+
+    return errors
+  }
+
+  const next = () => {
+    const errors = validate(step)
+    if (errors.length > 0) {
+      setValidationErrors(errors)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    setValidationErrors([])
+    setStep((s) => Math.min(s + 1, STEPS.length - 1))
+  }
+
+  const prev = () => {
+    setValidationErrors([])
+    setStep((s) => Math.max(s - 1, 0))
+  }
 
   const handleSubmit = async () => {
     setSubmitting(true)
-    console.log('submitting data:', JSON.stringify(data, null, 2))
     setError(null)
     try {
-      // 1. Insert main application
       const { data: app, error: appErr } = await supabase
         .from('applications')
         .insert({
@@ -120,7 +122,6 @@ export default function App() {
       if (appErr) throw appErr
       const appId = app.id
 
-      // 2. Insert household members
       if (data.household_members?.length > 0) {
         const { error: hmErr } = await supabase
           .from('household_members')
@@ -133,7 +134,6 @@ export default function App() {
         if (hmErr) throw hmErr
       }
 
-      // 3. Insert employment
       if (data.employer_name) {
         const jobTime = [
           data.job_years !== '' ? `${data.job_years} yr` : null,
@@ -154,7 +154,6 @@ export default function App() {
         if (empErr) throw empErr
       }
 
-      // 4. Insert references
       const validRefs = (data.personal_references || []).filter(r => r.name)
       if (validRefs.length > 0) {
         const { error: refErr } = await supabase
@@ -169,7 +168,6 @@ export default function App() {
         if (refErr) throw refErr
       }
 
-      // 5. Upload documents
       const files = data.files || {}
       for (const [docType, file] of Object.entries(files)) {
         const ext = file.name.split('.').pop()
@@ -187,10 +185,9 @@ export default function App() {
         })
       }
 
-      // 6. Send confirmation email
       await supabase.functions.invoke('send-confirmation-email', {
-  body: { email: data.email, firstName: data.first_name }
-})
+        body: { email: data.email, firstName: data.first_name }
+      })
 
       setSubmitted(true)
     } catch (err) {
@@ -220,21 +217,17 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {/* Header */}
       <header className="app-header">
         <div className="brand-wrap">
           <img src={logo} alt="WLGRE" style={{ height: '36px', width: 'auto' }} />
-          <span className="brand">WLGRE</span>
         </div>
-       
+        <span className="header-label">Rental Application</span>
       </header>
 
-      {/* Progress bar */}
       <div className="progress-bar">
         <div className="progress-fill" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
       </div>
 
-      {/* Step pills */}
       <div className="step-pills">
         {STEPS.map((s, i) => (
           <button
@@ -249,12 +242,19 @@ export default function App() {
         ))}
       </div>
 
-      {/* Form card */}
       <main className="form-card">
         <div className="step-header">
           <h2 className="step-title">{currentStep.title}</h2>
           <p className="step-subtitle">{currentStep.subtitle}</p>
         </div>
+
+        {validationErrors.length > 0 && (
+          <div className="validation-errors">
+            {validationErrors.map((e, i) => (
+              <p key={i} className="validation-error">⚠ {e}</p>
+            ))}
+          </div>
+        )}
 
         {currentStep.id === 'personal'   && <StepPersonal    data={data} onChange={setData} />}
         {currentStep.id === 'employment' && <StepEmployment  data={data} onChange={setData} />}
