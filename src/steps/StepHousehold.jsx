@@ -60,7 +60,7 @@ export default function StepHousehold({ data, onChange }) {
                 <li><strong>Pet rent:</strong> $50/month (added to your monthly rent)</li>
               </ul>
               <p style={{ margin: '8px 0 0 0', color: '#8a7230' }}>
-                Note: Verified service animals and emotional support animals are exempt from pet fees per Fair Housing law.
+              //  Note: Verified service animals and emotional support animals are exempt from pet fees per Fair Housing law.
               </p>
             </div>
           </div>
