@@ -36,7 +36,7 @@ export default function StepHousehold({ data, onChange }) {
           <Select value={data.has_pets} onChange={(e) => onChange({ ...data, has_pets: e.target.value === 'true' })}>
             <option value="false">No pets</option>
             <option value="true">Yes — I have pets</option>
-          </Select>
+          </Select>if
         </Field>
       </div>
 
@@ -60,7 +60,7 @@ export default function StepHousehold({ data, onChange }) {
                 <li><strong>Pet rent:</strong> $50/month (added to your monthly rent)</li>
               </ul>
               <p style={{ margin: '8px 0 0 0', color: '#8a7230' }}>
-                Note: Verified service animals and emotional support animals are exempt from pet fees per Fair Housing law.
+               
               </p>
             </div>
           </div>
