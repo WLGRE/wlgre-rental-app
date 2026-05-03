@@ -266,26 +266,25 @@ export default function App() {
         ))}
       </div>
 
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        width: '100%',
-        maxWidth: '680px',
-        padding: '0 16px',
-        marginBottom: '12px',
-        boxSizing: 'border-box',
-      }}>
-        <div>
-          <div style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>Income Requirement</div>
-          <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--ink)' }}>3x Monthly Rent</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>Security Deposit</div>
-          <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--ink)' }}>1x Monthly Rent</div>
-        </div>
-      </div>
-
       <main className="form-card">
+
+        {/* Requirements — sits at top of card, no separator, centered */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '6px',
+          marginBottom: '28px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '320px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--ink-muted)' }}>Income Requirement</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>3x Monthly Rent</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '320px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--ink-muted)' }}>Security Deposit</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>1x Monthly Rent</span>
+          </div>
+        </div>
 
         <div className="step-header">
           <h2 className="step-title">{currentStep.title}</h2>
