@@ -266,27 +266,26 @@ export default function App() {
         ))}
       </div>
 
-      <main className="form-card">
-
-        {/* Requirements banner — shows on every step */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          background: '#fdf8ee',
-          border: '1px solid #e4e0d8',
-          borderRadius: '10px',
-          padding: '14px 20px',
-          marginBottom: '28px',
-        }}>
-          <div>
-            <div style={{ fontSize: '13px', color: '#8a8a82', marginBottom: '2px' }}>Income Requirement</div>
-            <div style={{ fontSize: '15px', fontWeight: '600', color: '#1a1a18' }}>3x Monthly Rent</div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '13px', color: '#8a8a82', marginBottom: '2px' }}>Security Deposit</div>
-            <div style={{ fontSize: '15px', fontWeight: '600', color: '#1a1a18' }}>1x Monthly Rent</div>
-          </div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        width: '100%',
+        maxWidth: '680px',
+        padding: '0 16px',
+        marginBottom: '12px',
+        boxSizing: 'border-box',
+      }}>
+        <div>
+          <div style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>Income Requirement</div>
+          <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--ink)' }}>3x Monthly Rent</div>
         </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>Security Deposit</div>
+          <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--ink)' }}>1x Monthly Rent</div>
+        </div>
+      </div>
+
+      <main className="form-card">
 
         <div className="step-header">
           <h2 className="step-title">{currentStep.title}</h2>
