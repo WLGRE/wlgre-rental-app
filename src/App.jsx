@@ -23,6 +23,8 @@ const initialData = {
   current_address: '', move_reason: '', desired_move_in: '',
   employer_name: '', position: '', employment_status: '',
   employer_phone: '', job_years: '', job_months: '', monthly_income: '',
+  prev_employer_name: '', prev_position: '', prev_employer_phone: '',
+  prev_job_years: '', prev_job_months: '',
   housing_assistance: '', assistance_type: '', assistance_amount: '',
   occupants: '', has_pets: false, pet_details: '', pet_info: {},
   household_members: [],
@@ -61,11 +63,19 @@ export default function App() {
       if (!data.employer_name.trim()) errors.push('Employer name is required.')
       if (!data.monthly_income) errors.push('Monthly income is required.')
       else if (isNaN(data.monthly_income) || Number(data.monthly_income) < 0) errors.push('Enter a valid monthly income.')
+      if (data.job_years === '' || data.job_years === null) errors.push('Time at current job (years) is required.')
+      if (data.prev_job_years === '' || data.prev_job_years === null) errors.push('Time at previous job (years) is required.')
     }
 
     if (stepIndex === 2) {
       if (!data.occupants) errors.push('Total occupants is required.')
       else if (isNaN(data.occupants) || Number(data.occupants) < 1) errors.push('At least 1 occupant is required.')
+      const members = data.household_members || []
+      members.forEach((m, i) => {
+        if (!m.full_name?.trim()) errors.push(`Occupant ${i + 1} full name is required.`)
+        if (!m.relationship?.trim()) errors.push(`Occupant ${i + 1} relationship is required.`)
+        if (!m.age?.toString().trim()) errors.push(`Occupant ${i + 1} age is required.`)
+      })
     }
 
     if (stepIndex === 3) {
@@ -128,8 +138,8 @@ export default function App() {
           .insert(data.household_members.filter(m => m.full_name).map(m => ({
             application_id: appId,
             full_name: m.full_name,
-            date_of_birth: m.date_of_birth || null,
             relationship: m.relationship,
+            age: m.age ? parseInt(m.age) : null,
           })))
         if (hmErr) throw hmErr
       }
@@ -138,6 +148,11 @@ export default function App() {
         const jobTime = [
           data.job_years !== '' ? `${data.job_years} yr` : null,
           data.job_months !== '' ? `${MONTHS[data.job_months]}` : null,
+        ].filter(Boolean).join(', ')
+
+        const prevJobTime = [
+          data.prev_job_years !== '' ? `${data.prev_job_years} yr` : null,
+          data.prev_job_months !== '' ? `${MONTHS[data.prev_job_months]}` : null,
         ].filter(Boolean).join(', ')
 
         const { error: empErr } = await supabase
@@ -150,6 +165,10 @@ export default function App() {
             monthly_income: data.monthly_income ? parseFloat(data.monthly_income) : null,
             employment_status: data.employment_status,
             years_at_job: jobTime || null,
+            prev_employer_name: data.prev_employer_name || null,
+            prev_position: data.prev_position || null,
+            prev_employer_phone: data.prev_employer_phone || null,
+            prev_years_at_job: prevJobTime || null,
           })
         if (empErr) throw empErr
       }
@@ -186,7 +205,12 @@ export default function App() {
       }
 
       await supabase.functions.invoke('send-confirmation-email', {
-        body: { email: data.email, firstName: data.first_name }
+        body: {
+          email: data.email,
+          firstName: data.first_name,
+          lastName: data.last_name,
+          applicationId: appId,
+        }
       })
 
       setSubmitted(true)
@@ -243,6 +267,27 @@ export default function App() {
       </div>
 
       <main className="form-card">
+
+        {/* Requirements banner — shows on every step */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          background: '#fdf8ee',
+          border: '1px solid #e4e0d8',
+          borderRadius: '10px',
+          padding: '14px 20px',
+          marginBottom: '28px',
+        }}>
+          <div>
+            <div style={{ fontSize: '13px', color: '#8a8a82', marginBottom: '2px' }}>Income Requirement</div>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: '#1a1a18' }}>3x Monthly Rent</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '13px', color: '#8a8a82', marginBottom: '2px' }}>Security Deposit</div>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: '#1a1a18' }}>1x Monthly Rent</div>
+          </div>
+        </div>
+
         <div className="step-header">
           <h2 className="step-title">{currentStep.title}</h2>
           <p className="step-subtitle">{currentStep.subtitle}</p>
