@@ -268,22 +268,32 @@ export default function App() {
 
       <main className="form-card">
 
-        {/* Requirements — sits at top of card, no separator, centered */}
+        {/* Requirements rows — centered in card */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '6px',
-          marginBottom: '28px',
+          gap: '8px',
+          marginBottom: '32px',
+          paddingBottom: '24px',
+          borderBottom: '1px solid var(--paper-border)',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '320px' }}>
-            <span style={{ fontSize: '14px', color: 'var(--ink-muted)' }}>Income Requirement</span>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>3x Monthly Rent</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '320px' }}>
-            <span style={{ fontSize: '14px', color: 'var(--ink-muted)' }}>Security Deposit</span>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>1x Monthly Rent</span>
-          </div>
+          {[
+            { label: 'Income Requirement', value: '3x Monthly Rent' },
+            { label: 'Security Deposit',   value: '1x Monthly Rent' },
+          ].map(({ label, value }) => (
+            <div key={label} style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              width: '100%',
+              maxWidth: '340px',
+              gap: '24px',
+            }}>
+              <span style={{ fontSize: '14px', color: 'var(--ink-muted)', textAlign: 'right', flex: 1 }}>{label}</span>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--ink)', flex: 1 }}>{value}</span>
+            </div>
+          ))}
         </div>
 
         <div className="step-header">
@@ -307,6 +317,14 @@ export default function App() {
         {currentStep.id === 'review'     && <StepReview      data={data} />}
 
         {error && <div className="error-msg">{error}</div>}
+
+        {isLast && (
+          <p className="consent-text">
+            By submitting this application, you authorize WLGRE Properties to perform a background check and credit check,
+            verify your employment and rental history, and contact your references. All information provided is true and
+            accurate to the best of your knowledge.
+          </p>
+        )}
 
         <div className="form-actions">
           {!isFirst && (
