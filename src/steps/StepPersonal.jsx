@@ -6,6 +6,23 @@ export default function StepPersonal({ data, onChange }) {
 
   return (
     <div className="step-fields">
+
+      <div className="info-box" style={{
+        background: '#fdf8ee',
+        border: '1px solid #e4e0d8',
+        borderRadius: '12px',
+        padding: '16px 20px',
+        marginBottom: '24px',
+        fontSize: '14px',
+        color: '#4a4a45',
+        lineHeight: '1.7',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px' }}>
+          <div><span style={{ color: '#8a8a82' }}>Income Requirement</span><br /><strong>3x Monthly Rent</strong></div>
+          <div><span style={{ color: '#8a8a82' }}>Security Deposit</span><br /><strong>1x Monthly Rent</strong></div>
+        </div>
+      </div>
+
       <div className="field-row">
         <Field label="First name" required>
           <Input value={data.first_name} onChange={set('first_name')} placeholder="John" />
@@ -24,14 +41,7 @@ export default function StepPersonal({ data, onChange }) {
         <Input value={data.current_address} onChange={set('current_address')} placeholder="123 Main St, City, State" />
       </Field>
       <Field label="Reason for moving">
-        <Select value={data.move_reason} onChange={set('move_reason')}>
-          <option value="">Select a reason...</option>
-          <option>Lease ending</option>
-          <option>Relocating</option>
-          <option>Upgrading / downsizing</option>
-          <option>First rental</option>
-          <option>Other</option>
-        </Select>
+        <Input value={data.move_reason} onChange={set('move_reason')} placeholder="Describe your reason for moving..." />
       </Field>
       <Field label="Desired move-in date">
         <Input type="date" value={data.desired_move_in} onChange={set('desired_move_in')} />

@@ -2,7 +2,6 @@ import React from 'react'
 import { Field, Input, Select } from '../components/FormElements.jsx'
 
 const YEARS = Array.from({ length: 31 }, (_, i) => i)
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 export default function StepEmployment({ data, onChange }) {
   const set = (key) => (e) => onChange({ ...data, [key]: e.target.value })
@@ -10,6 +9,8 @@ export default function StepEmployment({ data, onChange }) {
 
   return (
     <div className="step-fields">
+
+      {/* Current Job */}
       <Field label="Employer name" required>
         <Input value={data.employer_name} onChange={set('employer_name')} placeholder="Company name" />
       </Field>
@@ -33,7 +34,7 @@ export default function StepEmployment({ data, onChange }) {
         <Input type="tel" value={data.employer_phone} onChange={set('employer_phone')} placeholder="(555) 000-0000" />
       </Field>
 
-      <Field label="Time at current job">
+      <Field label="Time at current job" required>
         <div className="field-row" style={{ marginTop: 0 }}>
           <Select value={data.job_years ?? ''} onChange={set('job_years')}>
             <option value="">Years</option>
@@ -42,11 +43,11 @@ export default function StepEmployment({ data, onChange }) {
             ))}
           </Select>
           <Select value={data.job_months ?? ''} onChange={set('job_months')}>
-  <option value="">Months</option>
-  {Array.from({ length: 12 }, (_, i) => (
-    <option key={i} value={i}>{i === 1 ? '1 month' : `${i} months`}</option>
-  ))}
-</Select>
+            <option value="">Months</option>
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i} value={i}>{i === 1 ? '1 month' : `${i} months`}</option>
+            ))}
+          </Select>
         </div>
       </Field>
 
@@ -61,6 +62,39 @@ export default function StepEmployment({ data, onChange }) {
         />
       </Field>
 
+      {/* Previous Job */}
+      <div className="section-divider"><span>Previous employment</span></div>
+
+      <Field label="Previous employer name">
+        <Input value={data.prev_employer_name ?? ''} onChange={set('prev_employer_name')} placeholder="Company name" />
+      </Field>
+      <div className="field-row">
+        <Field label="Previous position / title">
+          <Input value={data.prev_position ?? ''} onChange={set('prev_position')} placeholder="Job title" />
+        </Field>
+        <Field label="Previous employer phone">
+          <Input type="tel" value={data.prev_employer_phone ?? ''} onChange={set('prev_employer_phone')} placeholder="(555) 000-0000" />
+        </Field>
+      </div>
+
+      <Field label="Time at previous job" required>
+        <div className="field-row" style={{ marginTop: 0 }}>
+          <Select value={data.prev_job_years ?? ''} onChange={set('prev_job_years')}>
+            <option value="">Years</option>
+            {YEARS.map(y => (
+              <option key={y} value={y}>{y === 0 ? 'Less than 1 year' : y === 30 ? '30+ years' : `${y} ${y === 1 ? 'year' : 'years'}`}</option>
+            ))}
+          </Select>
+          <Select value={data.prev_job_months ?? ''} onChange={set('prev_job_months')}>
+            <option value="">Months</option>
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i} value={i}>{i === 1 ? '1 month' : `${i} months`}</option>
+            ))}
+          </Select>
+        </div>
+      </Field>
+
+      {/* Housing assistance */}
       <div className="section-divider"><span>Housing assistance</span></div>
 
       <Field label="Are you currently receiving housing assistance?">

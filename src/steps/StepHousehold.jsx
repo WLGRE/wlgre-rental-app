@@ -1,7 +1,7 @@
 import React from 'react'
 import { Field, Input, Select } from '../components/FormElements.jsx'
 
-const emptyMember = () => ({ full_name: '', date_of_birth: '', relationship: '' })
+const emptyMember = () => ({ full_name: '', relationship: '', age: '' })
 
 export default function StepHousehold({ data, onChange }) {
   const set = (key) => (e) => onChange({ ...data, [key]: e.target.value })
@@ -25,6 +25,7 @@ export default function StepHousehold({ data, onChange }) {
   const setPet = (key) => (e) => onChange({ ...data, pet_info: { ...(data.pet_info || {}), [key]: e.target.value } })
   const petInfo = data.pet_info || {}
   const members = data.household_members || []
+  const hasPets = data.has_pets === true || data.has_pets === 'true'
 
   return (
     <div className="step-fields">
@@ -40,7 +41,7 @@ export default function StepHousehold({ data, onChange }) {
         </Field>
       </div>
 
-      {data.has_pets === true || data.has_pets === 'true' ? (
+      {hasPets && (
         <div className="member-card">
           <div className="member-card-header"><span>Pet details</span></div>
           <div className="field-row">
@@ -78,7 +79,7 @@ export default function StepHousehold({ data, onChange }) {
             <Input value={petInfo.notes ?? ''} onChange={setPet('notes')} placeholder="Any additional info..." />
           </Field>
         </div>
-      ) : null}
+      )}
 
       <div className="section-divider">
         <span>Additional occupants</span>
@@ -90,11 +91,11 @@ export default function StepHousehold({ data, onChange }) {
             <span>Occupant {i + 1}</span>
             <button type="button" className="remove-btn" onClick={() => removeMember(i)}>Remove</button>
           </div>
+          <Field label="Full name" required>
+            <Input value={m.full_name} onChange={setMember(i, 'full_name')} placeholder="Full name" />
+          </Field>
           <div className="field-row">
-            <Field label="Full name">
-              <Input value={m.full_name} onChange={setMember(i, 'full_name')} placeholder="Full name" />
-            </Field>
-            <Field label="Relationship">
+            <Field label="Relationship" required>
               <Select value={m.relationship} onChange={setMember(i, 'relationship')}>
                 <option value="">Select...</option>
                 <option>Spouse / partner</option>
@@ -104,10 +105,17 @@ export default function StepHousehold({ data, onChange }) {
                 <option>Other</option>
               </Select>
             </Field>
+            <Field label="Age" required>
+              <Input
+                type="number"
+                min="0"
+                max="120"
+                value={m.age ?? ''}
+                onChange={setMember(i, 'age')}
+                placeholder="Age"
+              />
+            </Field>
           </div>
-          <Field label="Date of birth">
-            <Input type="date" value={m.date_of_birth} onChange={setMember(i, 'date_of_birth')} />
-          </Field>
         </div>
       ))}
 
