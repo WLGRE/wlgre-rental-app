@@ -32,7 +32,7 @@ export default function StepReferences({ data, onChange }) {
               <button type="button" className="remove-btn" onClick={() => removeRef(i)}>Remove</button>
             )}
           </div>
-          <Field label="Full name" required={i < 2}>
+          <Field label="Full Name" required={i < 2}>
             <Input value={r.name} onChange={setRef(i, 'name')} placeholder="Reference name" />
           </Field>
           <Field label="Relationship">
@@ -46,7 +46,7 @@ export default function StepReferences({ data, onChange }) {
             </Select>
           </Field>
           <div className="field-row">
-            <Field label="Phone">
+            <Field label="Phone" required={i < 2}>
               <Input type="tel" value={r.phone} onChange={setRef(i, 'phone')} placeholder="(555) 000-0000" />
             </Field>
             <Field label="Email">

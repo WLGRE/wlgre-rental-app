@@ -30,7 +30,7 @@ export default function StepHousehold({ data, onChange }) {
   return (
     <div className="step-fields">
       <div className="field-row">
-        <Field label="Total occupants" required>
+        <Field label="Total Occupants" required>
           <Input type="number" min="1" max="10" value={data.occupants} onChange={set('occupants')} placeholder="1" />
         </Field>
         <Field label="Pets?">
@@ -45,10 +45,10 @@ export default function StepHousehold({ data, onChange }) {
         <div className="member-card">
           <div className="member-card-header"><span>Pet details</span></div>
           <div className="field-row">
-            <Field label="Number of pets">
+            <Field label="Number Of Pets">
               <Input type="number" min="1" max="10" value={petInfo.count ?? ''} onChange={setPet('count')} placeholder="1" />
             </Field>
-            <Field label="Type(s) of pet">
+            <Field label="Type(s) Of Pet">
               <Select value={petInfo.type ?? ''} onChange={setPet('type')}>
                 <option value="">Select...</option>
                 <option>Dog</option>
@@ -63,11 +63,11 @@ export default function StepHousehold({ data, onChange }) {
             <Field label="Breed(s)">
               <Input value={petInfo.breed ?? ''} onChange={setPet('breed')} placeholder="e.g. Labrador mix" />
             </Field>
-            <Field label="Combined weight">
+            <Field label="Combined Weight">
               <Input value={petInfo.weight ?? ''} onChange={setPet('weight')} placeholder="e.g. 45 lbs" />
             </Field>
           </div>
-          <Field label="Are all pets spayed / neutered?">
+          <Field label="Are All Pets Spayed / Neutered?">
             <Select value={petInfo.neutered ?? ''} onChange={setPet('neutered')}>
               <option value="">Select...</option>
               <option value="yes">Yes</option>
@@ -75,7 +75,7 @@ export default function StepHousehold({ data, onChange }) {
               <option value="some">Some are</option>
             </Select>
           </Field>
-          <Field label="Additional notes (temperament, service animal, etc.)">
+          <Field label="Additional Notes (Temperament, Service Animal, Etc.)">
             <Input value={petInfo.notes ?? ''} onChange={setPet('notes')} placeholder="Any additional info..." />
           </Field>
         </div>
@@ -91,7 +91,7 @@ export default function StepHousehold({ data, onChange }) {
             <span>Occupant {i + 1}</span>
             <button type="button" className="remove-btn" onClick={() => removeMember(i)}>Remove</button>
           </div>
-          <Field label="Full name" required>
+          <Field label="Full Name" required>
             <Input value={m.full_name} onChange={setMember(i, 'full_name')} placeholder="Full name" />
           </Field>
           <div className="field-row">

@@ -38,7 +38,7 @@ const initialData = {
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 export default function App() {
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(5)
   const [data, setData] = useState(initialData)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -244,8 +244,8 @@ export default function App() {
       <header className="app-header">
         <div className="brand-wrap">
           <img src={logo} alt="WLGRE" style={{ height: '36px', width: 'auto' }} />
+          <span className="header-label">Rental Application</span>
         </div>
-        <span className="header-label">Rental Application</span>
       </header>
 
       <div className="progress-bar">
@@ -281,6 +281,7 @@ export default function App() {
           {[
             { label: 'Income Requirement', value: '3x Monthly Rent' },
             { label: 'Security Deposit',   value: '1x Monthly Rent' },
+            { label: 'Background Check',   value: '$40 (Non-Refundable)' },
           ].map(({ label, value }) => (
             <div key={label} style={{
               display: 'flex',
@@ -314,15 +315,16 @@ export default function App() {
         {currentStep.id === 'household'  && <StepHousehold   data={data} onChange={setData} />}
         {currentStep.id === 'references' && <StepReferences  data={data} onChange={setData} />}
         {currentStep.id === 'documents'  && <StepDocuments   data={data} onChange={setData} />}
-        {currentStep.id === 'review'     && <StepReview      data={data} />}
+        {currentStep.id === 'review'     && <StepReview      data={data} onNavigate={setStep} />}
 
         {error && <div className="error-msg">{error}</div>}
 
         {isLast && (
           <p className="consent-text">
-            By submitting this application, you authorize WLGRE Properties to perform a background check and credit check,
-            verify your employment and rental history, and contact your references. All information provided is true and
-            accurate to the best of your knowledge.
+            By submitting this application, I authorize WLGRE Properties to conduct a comprehensive background check, including 
+            credit reports, criminal history, and eviction records. I further authorize the verification of all income, employment,
+            and rental history, including contacting prior landlords and references. I certify that the information I have provided
+            is true and complete, and I understand that false statements may result in the rejection of this application.
           </p>
         )}
 

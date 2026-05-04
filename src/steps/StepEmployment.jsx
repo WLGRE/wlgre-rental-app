@@ -11,14 +11,14 @@ export default function StepEmployment({ data, onChange }) {
     <div className="step-fields">
 
       {/* Current Job */}
-      <Field label="Employer name" required>
+      <Field label="Employer Name" required>
         <Input value={data.employer_name} onChange={set('employer_name')} placeholder="Company name" />
       </Field>
       <div className="field-row">
-        <Field label="Position / title">
+        <Field label="Position / Title">
           <Input value={data.position} onChange={set('position')} placeholder="Job title" />
         </Field>
-        <Field label="Employment status">
+        <Field label="Employment Status">
           <Select value={data.employment_status} onChange={set('employment_status')}>
             <option value="">Select...</option>
             <option>Full-time</option>
@@ -30,11 +30,11 @@ export default function StepEmployment({ data, onChange }) {
         </Field>
       </div>
 
-      <Field label="Employer phone">
+      <Field label="Employer Phone">
         <Input type="tel" value={data.employer_phone} onChange={set('employer_phone')} placeholder="(555) 000-0000" />
       </Field>
 
-      <Field label="Time at current job" required>
+      <Field label="Time At Current Job" required>
         <div className="field-row" style={{ marginTop: 0 }}>
           <Select value={data.job_years ?? ''} onChange={set('job_years')}>
             <option value="">Years</option>
@@ -65,19 +65,19 @@ export default function StepEmployment({ data, onChange }) {
       {/* Previous Job */}
       <div className="section-divider"><span>Previous employment</span></div>
 
-      <Field label="Previous employer name">
+      <Field label="Previous Employer Name">
         <Input value={data.prev_employer_name ?? ''} onChange={set('prev_employer_name')} placeholder="Company name" />
       </Field>
       <div className="field-row">
-        <Field label="Previous position / title">
+        <Field label="Previous Position / Title">
           <Input value={data.prev_position ?? ''} onChange={set('prev_position')} placeholder="Job title" />
         </Field>
-        <Field label="Previous employer phone">
+        <Field label="Previous Employer Phone">
           <Input type="tel" value={data.prev_employer_phone ?? ''} onChange={set('prev_employer_phone')} placeholder="(555) 000-0000" />
         </Field>
       </div>
 
-      <Field label="Time at previous job" required>
+      <Field label="Time At Previous Job" required>
         <div className="field-row" style={{ marginTop: 0 }}>
           <Select value={data.prev_job_years ?? ''} onChange={set('prev_job_years')}>
             <option value="">Years</option>
@@ -97,7 +97,7 @@ export default function StepEmployment({ data, onChange }) {
       {/* Housing assistance */}
       <div className="section-divider"><span>Housing assistance</span></div>
 
-      <Field label="Are you currently receiving housing assistance?">
+      <Field label="Are You Currently Receiving Housing Assistance?">
         <Select value={String(data.housing_assistance ?? '')} onChange={setBool('housing_assistance')}>
           <option value="">Select...</option>
           <option value="false">No</option>
@@ -107,17 +107,17 @@ export default function StepEmployment({ data, onChange }) {
 
       {data.housing_assistance === true && (
         <>
-          <Field label="Program / voucher type">
+          <Field label="Program / Voucher Type" required>
             <Select value={data.assistance_type ?? ''} onChange={set('assistance_type')}>
               <option value="">Select...</option>
               <option>Section 8 / Housing Choice Voucher</option>
-              <option>HUD housing</option>
+              <option>HUD Housing</option>
               <option>Veterans Affairs (VASH)</option>
-              <option>State or local program</option>
+              <option>State Or Local Program</option>
               <option>Other</option>
             </Select>
           </Field>
-          <Field label="Monthly stipend / voucher amount">
+          <Field label="Monthly Stipend / Voucher Amount" required>
             <Input
               type="number"
               value={data.assistance_amount ?? ''}
