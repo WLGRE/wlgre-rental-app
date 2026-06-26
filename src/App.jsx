@@ -38,7 +38,7 @@ const initialData = {
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 export default function App() {
-  const [step, setStep] = useState(5)
+  const [step, setStep] = useState(0)
   const [data, setData] = useState(initialData)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -111,7 +111,8 @@ export default function App() {
     setSubmitting(true)
     setError(null)
     try {
-      const { data: app, error: appErr } = await supabase
+      // Insert application and return only the id
+      const { data: appRows, error: appErr } = await supabase
         .from('applications')
         .insert({
           first_name: data.first_name,
@@ -126,11 +127,10 @@ export default function App() {
           pet_details: data.pet_details,
           status: 'pending',
         })
-        .select()
-        .single()
+        .select('id')
 
       if (appErr) throw appErr
-      const appId = app.id
+      const appId = appRows[0].id
 
       if (data.household_members?.length > 0) {
         const { error: hmErr } = await supabase
