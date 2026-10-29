@@ -412,3 +412,19 @@ entrypoint = "./functions/send-confirmation-email/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/send-confirmation-email/*.html" ]
+
+[functions.stripe-identity]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/stripe-identity/index.ts"
+
+[functions.stripe-bank]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/stripe-bank/index.ts"
+
+# Stripe calls this directly and has no Supabase login, so its signature is checked instead
+[functions.stripe-webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-webhook/index.ts"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase.js'
 import StepPersonal from './steps/StepPersonal.jsx'
 import StepEmployment from './steps/StepEmployment.jsx'
@@ -7,14 +7,15 @@ import StepReferences from './steps/StepReferences.jsx'
 import StepDocuments from './steps/StepDocuments.jsx'
 import StepReview from './steps/StepReview.jsx'
 import './App.css'
-import logo from './WLGRE_LOGO.jpg'
+import logo from './WLG_CREST.jpg'
+import { loadFields, saveFields, loadFiles, saveFiles, clearDraft } from './draft.js'
 
 const STEPS = [
   { id: 'personal',    label: 'Personal',    title: 'Personal information',   subtitle: 'Tell us about yourself' },
   { id: 'employment',  label: 'Employment',  title: 'Employment & income',    subtitle: 'Your current job and earnings' },
   { id: 'household',   label: 'Household',   title: 'Household',              subtitle: 'Who will be living with you?' },
   { id: 'references',  label: 'References',  title: 'References',             subtitle: 'Two or more non-family contacts' },
-  { id: 'documents',   label: 'Documents',   title: 'Supporting documents',   subtitle: 'ID and proof of income' },
+  { id: 'documents',   label: 'Documents',   title: 'Supporting documents',   subtitle: 'ID and your two most recent pay stubs' },
   { id: 'review',      label: 'Review',      title: 'Review & submit',        subtitle: 'One last look before you submit' },
 ]
 
@@ -33,17 +34,69 @@ const initialData = {
     { name: '', relationship: '', phone: '', email: '' },
   ],
   files: {},
+  identity: null,   // { session_id } once the Stripe ID check is submitted
+  bank: null,       // { accounts: [{ id, institution, last4 }] } from Stripe Financial Connections
 }
+
+// DEV ONLY — test application filler. Remove before going live.
+const testFile = (name) => new File(['%PDF-1.4\n% test document\n'], name, { type: 'application/pdf' })
+
+const makeTestData = () => ({
+  ...initialData,
+  first_name: 'Test', last_name: 'Applicant', email: 'test@example.com', phone: '(555) 010-0100',
+  current_address: '123 Test St, Nashville, TN', move_reason: 'Test application',
+  desired_move_in: new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
+  employer_name: 'Test Company', position: 'Manager', employment_status: 'Full-time',
+  employer_phone: '(555) 010-0200', job_years: '3', job_months: '4', monthly_income: '6000',
+  prev_employer_name: 'Previous Test Co', prev_position: 'Associate', prev_employer_phone: '(555) 010-0300',
+  prev_job_years: '2', prev_job_months: '0',
+  housing_assistance: false,
+  occupants: '2', has_pets: true, pet_details: '', pet_info: { count: '1', type: 'Dog', breed: 'Labrador mix', weight: '45 lbs', neutered: 'yes' },
+  household_members: [{ full_name: 'Test Partner', relationship: 'Spouse / partner', age: '34' }],
+  personal_references: [
+    { name: 'Reference One', relationship: 'Former landlord', phone: '(555) 010-0400', email: 'ref1@example.com' },
+    { name: 'Reference Two', relationship: 'Coworker', phone: '(555) 010-0500', email: 'ref2@example.com' },
+  ],
+  files: { paystub: testFile('test-paystub.pdf'), paystub2: testFile('test-paystub-previous.pdf') },
+  identity: { session_id: null }, // skips the Stripe ID check
+})
+
+// Each step has its own #hash so links and the browser's back/forward buttons move between steps
+const stepFromHash = () => Math.max(0, STEPS.findIndex((s) => `#${s.id}` === window.location.hash))
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 export default function App() {
-  const [step, setStep] = useState(0)
-  const [data, setData] = useState(initialData)
+  const [step, setStep] = useState(stepFromHash)
+  const [data, setData] = useState(() => ({ ...initialData, ...loadFields() }))
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
-  const [validationErrors, setValidationErrors] = useState([])
+  const [errorStep, setErrorStep] = useState(null) // step whose missing fields are being shown
+  const [menuOpen, setMenuOpen] = useState(false)
+  const filesLoaded = useRef(false)
+
+  // Restore files from an earlier visit; keep any picked before the restore finished
+  useEffect(() => {
+    loadFiles().then((files) => {
+      if (files) setData((d) => ({ ...d, files: { ...files, ...d.files } }))
+      filesLoaded.current = true
+    })
+  }, [])
+
+  useEffect(() => { saveFields(data) }, [data])
+  useEffect(() => { if (filesLoaded.current) saveFiles(data.files) }, [data.files])
+
+  useEffect(() => {
+    const onHashChange = () => {
+      setStep(stepFromHash())
+      window.scrollTo({ top: 0 })
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  const goTo = (i) => { window.location.hash = STEPS[i].id }
 
   const isFirst = step === 0
   const isLast = step === STEPS.length - 1
@@ -84,30 +137,39 @@ export default function App() {
     }
 
     if (stepIndex === 4) {
-      if (!data.files?.id) errors.push('Government-issued ID is required.')
-      if (!data.files?.paystub) errors.push('A recent pay stub is required.')
+      if (!data.identity) errors.push('Please verify your ID with Stripe.')
+      if (!data.files?.paystub) errors.push('Your most recent pay stub is required.')
+      if (!data.files?.paystub2) errors.push('Your previous pay stub is required.')
     }
 
     return errors
   }
 
+  // Recomputed on every render, so each message disappears as soon as the field is filled in
+  const validationErrors = errorStep === step ? validate(step) : []
+
   const next = () => {
-    const errors = validate(step)
-    if (errors.length > 0) {
-      setValidationErrors(errors)
+    if (validate(step).length > 0) {
+      setErrorStep(step)
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
-    setValidationErrors([])
-    setStep((s) => Math.min(s + 1, STEPS.length - 1))
+    setErrorStep(null)
+    goTo(Math.min(step + 1, STEPS.length - 1))
   }
 
-  const prev = () => {
-    setValidationErrors([])
-    setStep((s) => Math.max(s - 1, 0))
-  }
+  const prev = () => goTo(Math.max(step - 1, 0))
 
   const handleSubmit = async () => {
+    // Steps can be visited in any order, so check them all and send the applicant to the first gap
+    const firstIncomplete = STEPS.findIndex((_, i) => validate(i).length > 0)
+    if (firstIncomplete !== -1) {
+      setErrorStep(firstIncomplete)
+      goTo(firstIncomplete)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
     setSubmitting(true)
     setError(null)
     try {
@@ -125,6 +187,8 @@ export default function App() {
           occupants: data.occupants ? parseInt(data.occupants) : null,
           has_pets: data.has_pets,
           pet_details: data.pet_details,
+          identity_session_id: data.identity?.session_id ?? null,
+          bank_account_ids: data.bank?.accounts.map((a) => a.id) ?? null,
           status: 'pending',
         })
         .select('id')
@@ -213,6 +277,7 @@ export default function App() {
         }
       })
 
+      clearDraft()
       setSubmitted(true)
     } catch (err) {
       console.error(err)
@@ -242,59 +307,68 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div className="brand-wrap">
-          <img src={logo} alt="WLGRE" style={{ height: '36px', width: 'auto' }} />
-          <span className="header-label">Rental Application</span>
+        <div className="brand">
+          <img className="logo" src={logo} alt="Wes Lee Group crest" />
+          Rental Application
         </div>
+        <nav className={`site-nav ${menuOpen ? 'open' : ''}`} id="siteNav" aria-label="Application steps">
+          {STEPS.map((s, i) => (
+            <a
+              key={s.id}
+              href={`#${s.id}`}
+              className={`nav-step ${i === step ? 'active' : ''} ${validate(i).length === 0 ? 'done' : ''}`}
+              onClick={() => setMenuOpen(false)}
+              aria-current={i === step ? 'step' : undefined}
+            >
+              {s.label}
+            </a>
+          ))}
+        </nav>
+        <button
+          className="menu-btn"
+          type="button"
+          aria-label="Menu"
+          aria-expanded={menuOpen}
+          aria-controls="siteNav"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <svg className="menu-icon" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        </button>
       </header>
 
       <div className="progress-bar">
         <div className="progress-fill" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
       </div>
 
-      <div className="step-pills">
-        {STEPS.map((s, i) => (
-          <button
-            key={s.id}
-            className={`step-pill ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`}
-            onClick={() => i < step && setStep(i)}
-            disabled={i > step}
-          >
-            <span className="pill-num">{i < step ? '✓' : i + 1}</span>
-            <span className="pill-label">{s.label}</span>
-          </button>
-        ))}
-      </div>
-
       <main className="form-card">
 
-        {/* Requirements rows — centered in card */}
+        {/* Requirements — two left-aligned columns, centered in card */}
         <div style={{
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'center',
           marginBottom: '32px',
           paddingBottom: '24px',
           borderBottom: '1px solid var(--paper-border)',
         }}>
-          {[
-            { label: 'Income Requirement', value: '3x Monthly Rent' },
-            { label: 'Security Deposit',   value: '1x Monthly Rent' },
-            { label: 'Background Check',   value: '$40 (Non-Refundable)' },
-          ].map(({ label, value }) => (
-            <div key={label} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: '100%',
-              maxWidth: '340px',
-              gap: '24px',
-            }}>
-              <span style={{ fontSize: '14px', color: 'var(--ink-muted)', textAlign: 'right', flex: 1 }}>{label}</span>
-              <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--ink)', flex: 1 }}>{value}</span>
-            </div>
-          ))}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto',
+            columnGap: '32px',
+            rowGap: '10px',
+            fontSize: '21px',
+            lineHeight: 1.3,
+          }}>
+            {[
+              { label: 'Income Requirement', value: '3x Monthly Rent' },
+              { label: 'Security Deposit',   value: '1x Monthly Rent' },
+              { label: 'Background Check',   value: '$40 (Non-Refundable)' },
+            ].map(({ label, value }) => (
+              <React.Fragment key={label}>
+                <span style={{ color: 'var(--ink-muted)' }}>{label}</span>
+                <span style={{ fontWeight: '700', color: 'var(--ink)' }}>{value}</span>
+              </React.Fragment>
+            ))}
+          </div>
         </div>
 
         <div className="step-header">
@@ -315,7 +389,7 @@ export default function App() {
         {currentStep.id === 'household'  && <StepHousehold   data={data} onChange={setData} />}
         {currentStep.id === 'references' && <StepReferences  data={data} onChange={setData} />}
         {currentStep.id === 'documents'  && <StepDocuments   data={data} onChange={setData} />}
-        {currentStep.id === 'review'     && <StepReview      data={data} onNavigate={setStep} />}
+        {currentStep.id === 'review'     && <StepReview      data={data} onNavigate={goTo} />}
 
         {error && <div className="error-msg">{error}</div>}
 
@@ -349,6 +423,16 @@ export default function App() {
       <footer className="app-footer">
         Step {step + 1} of {STEPS.length} &nbsp;·&nbsp; WLGRE Properties
       </footer>
+
+      {/* DEV ONLY — remove before going live */}
+      {import.meta.env.DEV && (
+        <button
+          className="dev-test-btn"
+          onClick={() => { setData(makeTestData()); setErrorStep(null); goTo(STEPS.length - 1) }}
+        >
+          Fill test application
+        </button>
+      )}
     </div>
   )
 }

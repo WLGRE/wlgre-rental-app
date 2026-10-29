@@ -1,4 +1,5 @@
 import React from 'react'
+import { DOC_TYPES } from './StepDocuments.jsx'
 
 function ReviewSection({ title, rows, onNavigate }) {
   return (
@@ -77,12 +78,22 @@ export default function StepReview({ data, onNavigate }) {
 
       <div className="review-section">
         <h3 className="review-section-title">Documents</h3>
+        <div className="review-row">
+          <span className="review-label">ID verification</span>
+          <span className="review-value">{data.identity ? '✓ Submitted to Stripe' : 'Not started'}</span>
+        </div>
+        {data.bank && (
+          <div className="review-row">
+            <span className="review-label">Bank account</span>
+            <span className="review-value">✓ {data.bank.accounts.map((a) => `${a.institution} ••${a.last4}`).join(', ')}</span>
+          </div>
+        )}
         {Object.entries(files).length === 0 ? (
           <p className="review-value" style={{ color: 'var(--ink-muted)' }}>No files uploaded</p>
         ) : (
           Object.entries(files).map(([key, file]) => (
             <div key={key} className="review-row">
-              <span className="review-label">{key}</span>
+              <span className="review-label">{DOC_TYPES.find((d) => d.key === key)?.label ?? key}</span>
               <span className="review-value">✓ {file.name}</span>
             </div>
           ))

@@ -1,0 +1,9 @@
+// Rental application, served as static files from the Vite build. Run `npm run build` first.
+{
+	"name": "wlgre-rental-app",
+	"compatibility_date": "2026-09-24",
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "single-page-application"
+	}
+}
