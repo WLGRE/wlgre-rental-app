@@ -255,6 +255,9 @@
   letter-spacing: 0.08em;
 }
 
+/* Between two sections that share a step (Household + References, Documents + Review) */
+.section-divider.step-section { margin: 36px 0 20px; }
+
 .section-divider::before,
 .section-divider::after {
   content: '';

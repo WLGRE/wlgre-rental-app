@@ -12,13 +12,12 @@ import { Field, Select } from './components/FormElements.jsx'
 import { loadUnits, unitLabel } from './units.js'
 import { loadFields, saveFields, loadFiles, saveFiles, clearDraft } from './draft.js'
 
+// Household includes references; the last step has the uploads, then the review summary and submit
 const STEPS = [
-  { id: 'personal',    label: 'Personal',    title: 'Personal information',   subtitle: 'Tell us about yourself' },
-  { id: 'employment',  label: 'Employment',  title: 'Employment & income',    subtitle: 'Your current job and earnings' },
-  { id: 'household',   label: 'Household',   title: 'Household',              subtitle: 'Who will be living with you?' },
-  { id: 'references',  label: 'References',  title: 'References',             subtitle: 'Two or more non-family contacts' },
-  { id: 'documents',   label: 'Documents',   title: 'Supporting documents',   subtitle: 'ID and proof of income' },
-  { id: 'review',      label: 'Review',      title: 'Review & submit',        subtitle: 'One last look before you submit' },
+  { id: 'personal',    label: 'About you',  title: 'Personal information',   subtitle: 'Tell us about yourself' },
+  { id: 'employment',  label: 'Income',     title: 'Employment & income',    subtitle: 'Your current job and earnings' },
+  { id: 'household',   label: 'Household',  title: 'Household',              subtitle: 'Who will live with you, and your references' },
+  { id: 'documents',   label: 'Documents',  title: 'Documents & submit',     subtitle: 'ID and proof of income, then one last look' },
 ]
 
 const initialData = {
@@ -173,14 +172,11 @@ export default function App() {
       if (!data.emergency_relationship.trim()) errors.push('Emergency contact relationship is required.')
       if (!data.emergency_phone.trim()) errors.push('Emergency contact phone is required.')
       if (!data.prior_evictions) errors.push('Please answer the eviction question.')
-    }
-
-    if (stepIndex === 3) {
       const validRefs = (data.personal_references || []).filter(r => r.name.trim() && r.phone.trim())
       if (validRefs.length < 2) errors.push('At least 2 references with name and phone are required.')
     }
 
-    if (stepIndex === 4) {
+    if (stepIndex === 3) {
       if (STRIPE_ID_ENABLED && !data.identity) errors.push('Please verify your ID with Stripe.')
       docsFor(data).forEach((d) => {
         if (d.required && !data.files?.[d.key]) errors.push(`${d.label} is required.`)
@@ -190,10 +186,9 @@ export default function App() {
     return errors
   }
 
-  // Share of the form steps (everything before Review) with no required fields left
-  const formSteps = STEPS.length - 1
+  // Share of the steps with no required fields left
   const percentComplete = Math.round(
-    (STEPS.slice(0, formSteps).filter((_, i) => validate(i).length === 0).length / formSteps) * 100,
+    (STEPS.filter((_, i) => validate(i).length === 0).length / STEPS.length) * 100,
   )
 
   // Recomputed on every render, so each message disappears as soon as the field is filled in
@@ -431,10 +426,20 @@ export default function App() {
 
         {currentStep.id === 'personal'   && <StepPersonal    data={data} onChange={setData} />}
         {currentStep.id === 'employment' && <StepEmployment  data={data} onChange={setData} />}
-        {currentStep.id === 'household'  && <StepHousehold   data={data} onChange={setData} />}
-        {currentStep.id === 'references' && <StepReferences  data={data} onChange={setData} />}
-        {currentStep.id === 'documents'  && <StepDocuments   data={data} onChange={setData} />}
-        {currentStep.id === 'review'     && <StepReview      data={data} unit={selectedUnit} onNavigate={goTo} />}
+        {currentStep.id === 'household' && (
+          <>
+            <StepHousehold data={data} onChange={setData} />
+            <div className="section-divider step-section"><span>References</span></div>
+            <StepReferences data={data} onChange={setData} />
+          </>
+        )}
+        {currentStep.id === 'documents' && (
+          <>
+            <StepDocuments data={data} onChange={setData} />
+            <div className="section-divider step-section"><span>Review</span></div>
+            <StepReview data={data} unit={selectedUnit} onNavigate={goTo} />
+          </>
+        )}
 
         {error && <div className="error-msg">{error}</div>}
 

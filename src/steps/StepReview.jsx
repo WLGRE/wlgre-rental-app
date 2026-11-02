@@ -1,5 +1,4 @@
 import React from 'react'
-import { docsFor, STRIPE_ID_ENABLED } from './StepDocuments.jsx'
 import { formatJobTime } from './StepEmployment.jsx'
 import { unitLabel } from '../units.js'
 
@@ -24,15 +23,14 @@ function ReviewSection({ title, rows, onNavigate }) {
 export default function StepReview({ data, unit, onNavigate }) {
   const refs = data.personal_references || []
   const members = data.household_members || []
-  const files = data.files || {}
   const vehicles = data.vehicles || []
   const pet = data.pet_info || {}
   const petSummary = [pet.count && `${pet.count} ${pet.type || 'pet'}`, pet.breed, pet.weight].filter(Boolean).join(', ')
-  const uploads = docsFor(data).filter((d) => files[d.key])
 
+  // The uploads are just above this on the same step, so they aren't repeated here
   return (
     <div className="step-fields">
-      <p className="step-note">Please Review Your Information Before Submitting.</p>
+      <p className="step-note">Please check your information before submitting. Tap a section title to change it.</p>
 
       <ReviewSection title="Personal information" onNavigate={() => onNavigate(0)} rows={[
         ['Applying for', unit && unitLabel(unit)],
@@ -83,7 +81,7 @@ export default function StepReview({ data, unit, onNavigate }) {
 
       {refs.length > 0 && (
         <div className="review-section">
-          <h3 className="review-section-title"><button className="review-section-link" onClick={() => onNavigate(3)}>References</button></h3>
+          <h3 className="review-section-title"><button className="review-section-link" onClick={() => onNavigate(2)}>References</button></h3>
           {refs.map((r, i) => (
             <div key={i} className="review-row">
               <span className="review-label">Reference {i + 1}</span>
@@ -92,33 +90,6 @@ export default function StepReview({ data, unit, onNavigate }) {
           ))}
         </div>
       )}
-
-      <div className="review-section">
-        <h3 className="review-section-title">Documents</h3>
-        {STRIPE_ID_ENABLED && (
-          <div className="review-row">
-            <span className="review-label">ID verification</span>
-            <span className="review-value">{data.identity ? '✓ Submitted to Stripe' : 'Not started'}</span>
-          </div>
-        )}
-        {data.bank && (
-          <div className="review-row">
-            <span className="review-label">Bank account</span>
-            <span className="review-value">✓ {data.bank.accounts.map((a) => `${a.institution} ••${a.last4}`).join(', ')}</span>
-          </div>
-        )}
-        {uploads.length === 0 ? (
-          <p className="review-value" style={{ color: 'var(--ink-muted)' }}>No files uploaded</p>
-        ) : (
-          uploads.map(({ key, label }) => (
-            <div key={key} className="review-row">
-              <span className="review-label">{label}</span>
-              <span className="review-value">✓ {files[key].name}</span>
-            </div>
-          ))
-        )}
-      </div>
-
     </div>
   )
 }
