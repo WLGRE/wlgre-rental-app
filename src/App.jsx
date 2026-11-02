@@ -9,7 +9,7 @@ import StepReview from './steps/StepReview.jsx'
 import './App.css'
 import AppHeader from './components/AppHeader.jsx'
 import { Field, Select } from './components/FormElements.jsx'
-import { PROPERTIES, findProperty, propertyLabel } from './properties.js'
+import { PROPERTIES, findProperty, propertyLabel, loadAvailableIds } from './properties.js'
 import { loadFields, saveFields, loadFiles, saveFiles, clearDraft } from './draft.js'
 
 const STEPS = [
@@ -86,6 +86,8 @@ export default function App() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
   const [errorStep, setErrorStep] = useState(null) // step whose missing fields are being shown
+  const [availableIds, setAvailableIds] = useState(null) // units checked on the settings page; null while loading
+  const [unitsError, setUnitsError] = useState(false)
   const filesLoaded = useRef(false)
 
   // Restore files from an earlier visit; keep any picked before the restore finished
@@ -94,6 +96,10 @@ export default function App() {
       if (files) setData((d) => ({ ...d, files: { ...files, ...d.files } }))
       filesLoaded.current = true
     })
+  }, [])
+
+  useEffect(() => {
+    loadAvailableIds().then(setAvailableIds, () => setUnitsError(true))
   }, [])
 
   useEffect(() => { saveFields(data) }, [data])
@@ -117,7 +123,7 @@ export default function App() {
     const errors = []
 
     if (stepIndex === 0) {
-      if (!findProperty(data.property_id)) errors.push('Choose the unit you’re applying for.')
+      if (!availableIds?.includes(data.property_id)) errors.push('Choose the unit you’re applying for.')
       if (!data.first_name.trim()) errors.push('First name is required.')
       if (!data.last_name.trim()) errors.push('Last name is required.')
       if (!data.email.trim()) errors.push('Email is required.')
@@ -399,8 +405,12 @@ export default function App() {
         <div className="property-pick">
           <Field label="Unit You’re Applying For" required>
             <Select value={data.property_id} onChange={(e) => setData((d) => ({ ...d, property_id: e.target.value }))}>
-              <option value="">Select a unit...</option>
-              {PROPERTIES.map((p) => <option key={p.id} value={p.id}>{propertyLabel(p)}</option>)}
+              <option value="">
+                {unitsError ? 'Couldn’t load units. Please refresh.' : availableIds === null ? 'Loading units…' : 'Select a unit...'}
+              </option>
+              {PROPERTIES.filter((p) => availableIds?.includes(p.id)).map((p) => (
+                <option key={p.id} value={p.id}>{propertyLabel(p)}</option>
+              ))}
             </Select>
           </Field>
         </div>

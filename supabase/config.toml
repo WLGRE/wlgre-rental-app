@@ -439,3 +439,9 @@ entrypoint = "./functions/inspection-lookup/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/send-inspection-email/index.ts"
+
+# Staff settings page: which units show in the application's dropdown (checks the ADMIN_PASSWORD secret)
+[functions.update-units]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/update-units/index.ts"
