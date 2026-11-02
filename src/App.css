@@ -10,9 +10,11 @@
 
 /* ── Header ── */
 /* Matches the Cane Creek Retreat site header */
+/* Three columns so the title stays centered whether or not there's a menu button on the right */
 .app-header {
   width: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 18px 24px;
   background: #0d2818;
@@ -23,10 +25,11 @@
 }
 
 .brand {
+  grid-column: 2;
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-right: auto;
+  white-space: nowrap;
   font-family: 'Playfair Display', Georgia, serif;
   font-weight: 700;
   font-size: 1.56rem;
@@ -40,7 +43,7 @@
   border-radius: 6px;
 }
 
-/* Step links: a dropdown under the menu button on phones, a row on wide screens */
+/* Step links: a dropdown under the menu button */
 .site-nav {
   display: none;
   position: absolute;
@@ -71,10 +74,11 @@
 .nav-step.active { opacity: 1; color: var(--gold); }
 
 .menu-btn {
+  grid-column: 3;
+  justify-self: end;
   background: none;
   border: none;
   padding: 0;
-  margin-left: 14px;
 }
 
 .menu-icon { width: 26px; height: 26px; stroke: #f1efe6; display: block; }
@@ -82,20 +86,6 @@
 @media (max-width: 420px) {
   .brand { font-size: 1.32rem; gap: 8px; }
   .brand .logo { height: 32px; }
-}
-
-@media (min-width: 1080px) {
-  .site-nav {
-    display: flex;
-    position: static;
-    flex-direction: row;
-    gap: 22px;
-    padding: 0;
-    border: 0;
-    background: none;
-  }
-  .nav-step { padding: 0; }
-  .menu-btn { display: none; }
 }
 
 /* ── Progress bar ── */
