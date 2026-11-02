@@ -1,0 +1,11 @@
+// Move-in / move-out inspection at inspection.wlgre.com, a separate site from the application.
+// Deploy with `npm run deploy:inspection` (builds it first).
+{
+	"name": "wlgre-inspection",
+	"compatibility_date": "2026-09-24",
+	"assets": {
+		"directory": "./dist-inspection",
+		"not_found_handling": "single-page-application"
+	},
+	"routes": [{ "pattern": "inspection.wlgre.com", "custom_domain": true }]
+}

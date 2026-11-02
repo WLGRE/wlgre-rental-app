@@ -428,3 +428,14 @@ entrypoint = "./functions/stripe-bank/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/stripe-webhook/index.ts"
+
+# Move-out form: loads the move-in inspection from the secret token in its link
+[functions.inspection-lookup]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/inspection-lookup/index.ts"
+
+[functions.send-inspection-email]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/send-inspection-email/index.ts"

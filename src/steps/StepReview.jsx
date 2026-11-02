@@ -1,6 +1,7 @@
 import React from 'react'
 import { docsFor, STRIPE_ID_ENABLED } from './StepDocuments.jsx'
 import { formatJobTime } from './StepEmployment.jsx'
+import { findProperty, propertyLabel } from '../properties.js'
 
 function ReviewSection({ title, rows, onNavigate }) {
   return (
@@ -34,6 +35,7 @@ export default function StepReview({ data, onNavigate }) {
       <p className="step-note">Please Review Your Information Before Submitting.</p>
 
       <ReviewSection title="Personal information" onNavigate={() => onNavigate(0)} rows={[
+        ['Applying for', findProperty(data.property_id) && propertyLabel(findProperty(data.property_id))],
         ['First name', data.first_name],
         ['Last name', data.last_name],
         ['Email', data.email],

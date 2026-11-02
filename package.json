@@ -4,7 +4,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:inspection": "vite --config vite.inspection.config.js",
+    "build:inspection": "vite build --config vite.inspection.config.js",
+    "deploy:inspection": "npm run build:inspection && npx wrangler deploy -c wrangler.inspection.jsonc"
   },
   "dependencies": {
     "@stripe/stripe-js": "^10.2.0",

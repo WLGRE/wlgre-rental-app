@@ -135,15 +135,25 @@
   box-shadow: var(--shadow);
 }
 
+/* ── Unit picker (under the requirements box) ── */
+.property-pick { margin-bottom: 28px; }
+
 /* ── Step header ── */
-.step-header { margin-bottom: 28px; }
+/* Title and subtitle share a line; the subtitle wraps under it when there isn't room */
+.step-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 14px;
+  row-gap: 2px;
+  margin-bottom: 28px;
+}
 
 .step-title {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 26px;
   font-weight: 400;
   color: var(--ink);
-  margin-bottom: 4px;
 }
 
 .step-subtitle {

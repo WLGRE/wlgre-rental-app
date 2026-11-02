@@ -115,7 +115,7 @@ serve(async (req) => {
             Application received, ${esc(app.first_name)}.
           </h1>
           <p style="font-size:16px;line-height:1.7;color:#4a4a45;margin-bottom:24px;">
-            Thank you for submitting your rental application. We've received everything and will be in touch shortly to let you know next steps.
+            Thank you for submitting your rental application${app.property_address ? ` for ${esc(app.property_address)}` : ''}. We've received everything and will be in touch shortly to let you know next steps.
           </p>
           <div style="background:#fdf8ee;border:1px solid #e4e0d8;border-radius:12px;padding:20px 24px;margin-bottom:32px;">
             <p style="font-size:14px;color:#8a8a82;margin-bottom:4px;">What happens next</p>
@@ -179,7 +179,7 @@ serve(async (req) => {
       from: 'WLGRE Applications <no-reply@wlgre.com>',
       to: ['james@wlgre.com', '4047989978@mymetropcs.com'],
       reply_to: app.email,
-      subject: `New application: ${app.first_name} ${app.last_name}`,
+      subject: `New application: ${app.first_name} ${app.last_name}${app.property_address ? ` — ${app.property_address}` : ''}`,
       html: `
         <div style="font-family:'DM Sans',sans-serif;max-width:600px;margin:0 auto;padding:40px 24px;color:#1a1a18;">
           <div style="margin-bottom:32px;">
@@ -190,6 +190,7 @@ serve(async (req) => {
           </h1>
 
           ${section('Personal information', [
+            row('Applying for', app.property_address),
             row('Name', `${app.first_name} ${app.last_name}`),
             row('Email', app.email),
             row('Phone', app.phone),

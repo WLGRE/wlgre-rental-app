@@ -7,7 +7,9 @@ import StepReferences from './steps/StepReferences.jsx'
 import StepDocuments, { docsFor, isSelfEmployed, STRIPE_ID_ENABLED } from './steps/StepDocuments.jsx'
 import StepReview from './steps/StepReview.jsx'
 import './App.css'
-import logo from './WLG_CREST.jpg'
+import AppHeader from './components/AppHeader.jsx'
+import { Field, Select } from './components/FormElements.jsx'
+import { PROPERTIES, findProperty, propertyLabel } from './properties.js'
 import { loadFields, saveFields, loadFiles, saveFiles, clearDraft } from './draft.js'
 
 const STEPS = [
@@ -20,6 +22,7 @@ const STEPS = [
 ]
 
 const initialData = {
+  property_id: '',
   first_name: '', last_name: '', email: '', phone: '',
   date_of_birth: '', ssn_last4: '',
   address_street: '', address_city: '', address_state: '', address_zip: '',
@@ -49,6 +52,7 @@ const testFile = (name) => new File(['%PDF-1.4\n% test document\n'], name, { typ
 
 const makeTestData = () => ({
   ...initialData,
+  property_id: '831',
   first_name: 'Test', last_name: 'Applicant', email: 'test@example.com', phone: '(555) 010-0100',
   date_of_birth: '1990-01-15', ssn_last4: '0000',
   address_street: '123 Test St', address_city: 'Nashville', address_state: 'TN', address_zip: '37201',
@@ -82,7 +86,6 @@ export default function App() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
   const [errorStep, setErrorStep] = useState(null) // step whose missing fields are being shown
-  const [menuOpen, setMenuOpen] = useState(false)
   const filesLoaded = useRef(false)
 
   // Restore files from an earlier visit; keep any picked before the restore finished
@@ -114,6 +117,7 @@ export default function App() {
     const errors = []
 
     if (stepIndex === 0) {
+      if (!findProperty(data.property_id)) errors.push('Choose the unit you’re applying for.')
       if (!data.first_name.trim()) errors.push('First name is required.')
       if (!data.last_name.trim()) errors.push('Last name is required.')
       if (!data.email.trim()) errors.push('Email is required.')
@@ -217,6 +221,7 @@ export default function App() {
         .from('applications')
         .insert({
           id: appId,
+          property_address: findProperty(data.property_id).address,
           first_name: data.first_name,
           last_name: data.last_name,
           email: data.email,
@@ -358,35 +363,12 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div className="brand">
-          <img className="logo" src={logo} alt="Wes Lee Group crest" />
-          Rental Application
-        </div>
-        <nav className={`site-nav ${menuOpen ? 'open' : ''}`} id="siteNav" aria-label="Application steps">
-          {STEPS.map((s, i) => (
-            <a
-              key={s.id}
-              href={`#${s.id}`}
-              className={`nav-step ${i === step ? 'active' : ''} ${validate(i).length === 0 ? 'done' : ''}`}
-              onClick={() => setMenuOpen(false)}
-              aria-current={i === step ? 'step' : undefined}
-            >
-              {s.label}
-            </a>
-          ))}
-        </nav>
-        <button
-          className="menu-btn"
-          type="button"
-          aria-label="Menu"
-          aria-expanded={menuOpen}
-          aria-controls="siteNav"
-          onClick={() => setMenuOpen((o) => !o)}
-        >
-          <svg className="menu-icon" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-        </button>
-      </header>
+      <AppHeader
+        title="Rental Application"
+        steps={STEPS}
+        step={step}
+        done={STEPS.map((_, i) => validate(i).length === 0)}
+      />
 
       <div className="progress-bar">
         <div className="progress-fill" style={{ width: `${percentComplete}%` }} />
@@ -412,6 +394,15 @@ export default function App() {
               </React.Fragment>
             ))}
           </div>
+        </div>
+
+        <div className="property-pick">
+          <Field label="Unit You’re Applying For" required>
+            <Select value={data.property_id} onChange={(e) => setData((d) => ({ ...d, property_id: e.target.value }))}>
+              <option value="">Select a unit...</option>
+              {PROPERTIES.map((p) => <option key={p.id} value={p.id}>{propertyLabel(p)}</option>)}
+            </Select>
+          </Field>
         </div>
 
         <div className="step-header">
