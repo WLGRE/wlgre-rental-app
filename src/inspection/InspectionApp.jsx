@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase.js'
 import { createDraft } from '../draft.js'
 import AppHeader from '../components/AppHeader.jsx'
+import AppFooter from '../components/AppFooter.jsx'
 import { Field, Input } from '../components/FormElements.jsx'
 import RoomList, { itemDone, roomDone } from './RoomList.jsx'
 import SignaturePad from './SignaturePad.jsx'
@@ -416,7 +417,7 @@ export default function InspectionApp() {
         </div>
       </main>
 
-      <footer className="app-footer">WLGRE Properties</footer>
+      <AppFooter />
     </div>
   )
 }

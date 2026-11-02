@@ -535,10 +535,38 @@ button.upload-btn:disabled { opacity: 0.6; cursor: default; }
 
 /* ── Footer ── */
 .app-footer {
-  margin-top: 24px;
+  width: 100%;
+  max-width: 680px;
+  margin-top: 32px;
+  padding: 24px 24px 0;
+  border-top: 1px solid var(--paper-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
   font-size: 13px;
   color: var(--ink-muted);
 }
+
+.app-footer a { color: var(--ink-soft); }
+
+.footer-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 17px;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+}
+
+.footer-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.footer-icon { width: 15px; height: 15px; flex-shrink: 0; }
+
+.footer-copy { margin-top: 6px; font-size: 12px; }
 
 /* ── Requirements box ── */
 .requirements {

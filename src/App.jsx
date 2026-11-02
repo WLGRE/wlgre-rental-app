@@ -8,6 +8,7 @@ import StepDocuments, { docsFor, isSelfEmployed, STRIPE_ID_ENABLED } from './ste
 import StepReview from './steps/StepReview.jsx'
 import './App.css'
 import AppHeader from './components/AppHeader.jsx'
+import AppFooter from './components/AppFooter.jsx'
 import { Field, Select } from './components/FormElements.jsx'
 import { loadUnits, unitLabel } from './units.js'
 import { loadFields, saveFields, loadFiles, saveFiles, clearDraft } from './draft.js'
@@ -470,9 +471,7 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="app-footer">
-        WLGRE Properties
-      </footer>
+      <AppFooter />
 
       {/* DEV ONLY — remove before going live */}
       {import.meta.env.DEV && (
