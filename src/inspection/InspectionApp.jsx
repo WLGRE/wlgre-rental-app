@@ -6,7 +6,7 @@ import { Field, Input } from '../components/FormElements.jsx'
 import RoomList, { itemDone, roomDone } from './RoomList.jsx'
 import SignaturePad from './SignaturePad.jsx'
 import { standardRooms, roomsFromMoveIn } from './rooms.js'
-import { findProperty, propertyLabel } from '../properties.js'
+import { loadUnits, unitLabel } from '../units.js'
 import '../App.css'
 import './Inspection.css'
 
@@ -15,7 +15,7 @@ import './Inspection.css'
 const params = new URLSearchParams(window.location.search)
 const REF = params.get('ref')
 const IS_MOVE_OUT = REF !== null
-const PROPERTY = IS_MOVE_OUT ? null : findProperty(params.get('unit'))
+const UNIT_ID = IS_MOVE_OUT ? null : params.get('unit')
 const KIND = IS_MOVE_OUT ? 'Move-Out' : 'Move-In'
 const draft = createDraft(IS_MOVE_OUT ? 'wlgre-inspection-out' : 'wlgre-inspection-in')
 document.title = `${KIND} Inspection — WLGRE`
@@ -68,18 +68,10 @@ async function uploadAll(uploads, onProgress) {
 
 export default function InspectionApp() {
   const [step, setStep] = useState(stepFromHash)
-  const [data, setData] = useState(() => {
-    const saved = { ...initialData, ...draft.loadFields() }
-    if (!PROPERTY) return saved
-    // A move-in draft for a different unit starts over
-    const start = saved.property_id === PROPERTY.id ? saved : initialData
-    return {
-      ...start,
-      property_id: PROPERTY.id,
-      property_address: PROPERTY.address,
-      rooms: start.rooms.length > 0 ? start.rooms : standardRooms(PROPERTY),
-    }
-  })
+  const [data, setData] = useState(() => ({ ...initialData, ...draft.loadFields() }))
+  // Move-in: the unit from the link. null while loading, false if the link names no unit we have
+  const [unit, setUnit] = useState(UNIT_ID ? null : false)
+  const [unitError, setUnitError] = useState(false)
   const [moveIn, setMoveIn] = useState(null)
   const [lookupError, setLookupError] = useState(null)
   const [errorStep, setErrorStep] = useState(null)
@@ -103,6 +95,25 @@ export default function InspectionApp() {
 
   useEffect(() => { draft.saveFields(data) }, [data])
   useEffect(() => { if (filesLoaded.current) draft.saveFiles(data.files) }, [data.files])
+
+  // Move-in: look up the link's unit and build its rooms (a draft for a different unit starts over)
+  useEffect(() => {
+    if (!UNIT_ID) return
+    loadUnits().then((units) => {
+      const found = units.find((u) => u.id === UNIT_ID)
+      setUnit(found ?? false)
+      if (!found) return
+      setData((d) => {
+        const start = d.property_id === found.id ? d : { ...initialData, files: {} }
+        return {
+          ...start,
+          property_id: found.id,
+          property_address: found.address,
+          rooms: start.rooms.length > 0 ? start.rooms : standardRooms(found),
+        }
+      })
+    }, () => setUnitError(true))
+  }, [])
 
   // Move-out: load the move-in this link belongs to, and start from its rooms and tenant details
   useEffect(() => {
@@ -254,33 +265,22 @@ export default function InspectionApp() {
     )
   }
 
-  if (!IS_MOVE_OUT && !PROPERTY) {
-    return (
-      <div className="app-shell">
-        <AppHeader title={`${KIND} Inspection`} steps={[]} step={0} done={[]} />
-        <div className="success-screen">
-          <p className="success-body">
-            Please open the inspection link your property manager sent you.<br />
-            Don’t have it? Email <a href="mailto:wlgre@wlgre.com">wlgre@wlgre.com</a>.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  // Loading and problem screens before the form can show
+  const notice = (body) => (
+    <div className="app-shell">
+      <AppHeader title={`${KIND} Inspection`} steps={[]} step={0} done={[]} />
+      <div className="success-screen"><p className="success-body">{body}</p></div>
+    </div>
+  )
+  const contact = <>Questions? Email <a href="mailto:wlgre@wlgre.com">wlgre@wlgre.com</a>.</>
 
+  if (!IS_MOVE_OUT) {
+    if (unitError) return notice(<>We couldn’t load your inspection. Please check your connection and reload.<br />{contact}</>)
+    if (unit === null) return notice('Loading your inspection…')
+    if (unit === false) return notice(<>Please open the inspection link your property manager sent you.<br />{contact}</>)
+  }
   if (IS_MOVE_OUT && !moveIn) {
-    return (
-      <div className="app-shell">
-        <AppHeader title={`${KIND} Inspection`} steps={[]} step={0} done={[]} />
-        <div className="success-screen">
-          <p className="success-body">
-            {lookupError
-              ? <>{lookupError}<br />Questions? Email <a href="mailto:wlgre@wlgre.com">wlgre@wlgre.com</a>.</>
-              : 'Loading your move-in inspection…'}
-          </p>
-        </div>
-      </div>
-    )
+    return notice(lookupError ? <>{lookupError}<br />{contact}</> : 'Loading your move-in inspection…')
   }
 
   const current = STEPS[step]
@@ -331,7 +331,7 @@ export default function InspectionApp() {
 
             <div className="section-divider"><span>Property</span></div>
             <Field label="Property">
-              <Input value={PROPERTY ? propertyLabel(PROPERTY) : [data.property_address, data.unit].filter(Boolean).join(', ')} disabled />
+              <Input value={unit ? unitLabel(unit) : [data.property_address, data.unit].filter(Boolean).join(', ')} disabled />
             </Field>
             <Field label={`${KIND} Date`} required>
               <Input type="date" value={data.inspection_date} onChange={set('inspection_date')} />

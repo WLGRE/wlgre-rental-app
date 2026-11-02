@@ -1,16 +1,22 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import AppHeader from '../components/AppHeader.jsx'
 import { Field, Select } from '../components/FormElements.jsx'
-import { PROPERTIES, propertyLabel } from '../properties.js'
+import { loadUnits, unitLabel } from '../units.js'
 
 // Staff page at inspection.wlgre.com/?invite: makes a tenant's move-in link for one unit, which the
-// tenant sees locked. It only makes a link, so it needs no login.
+// tenant sees locked. Lists every unit, available or not. It only makes a link, so it needs no login.
 export default function InviteLink() {
   document.title = 'Inspection Link — WLGRE'
+  const [units, setUnits] = useState(null)
+  const [loadError, setLoadError] = useState(false)
   const [unit, setUnit] = useState('')
   const [copied, setCopied] = useState(false)
 
-  const link = `${window.location.origin}/?unit=${unit}`
+  useEffect(() => {
+    loadUnits().then(setUnits, () => setLoadError(true))
+  }, [])
+
+  const link = `${window.location.origin}/?unit=${encodeURIComponent(unit)}`
   const message = `Please complete your move-in inspection within 3 days of moving in: ${link}`
 
   const copy = async () => {
@@ -35,8 +41,8 @@ export default function InviteLink() {
         <div className="step-fields">
           <Field label="Unit" required>
             <Select value={unit} onChange={(e) => setUnit(e.target.value)}>
-              <option value="">Select a unit...</option>
-              {PROPERTIES.map((p) => <option key={p.id} value={p.id}>{propertyLabel(p)}</option>)}
+              <option value="">{loadError ? 'Couldn’t load units. Please refresh.' : units === null ? 'Loading units…' : 'Select a unit...'}</option>
+              {(units || []).map((u) => <option key={u.id} value={u.id}>{unitLabel(u)}</option>)}
             </Select>
           </Field>
 

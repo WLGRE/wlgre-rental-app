@@ -9,7 +9,7 @@ import StepReview from './steps/StepReview.jsx'
 import './App.css'
 import AppHeader from './components/AppHeader.jsx'
 import { Field, Select } from './components/FormElements.jsx'
-import { PROPERTIES, findProperty, propertyLabel, loadAvailableIds } from './properties.js'
+import { loadUnits, unitLabel } from './units.js'
 import { loadFields, saveFields, loadFiles, saveFiles, clearDraft } from './draft.js'
 
 const STEPS = [
@@ -86,7 +86,7 @@ export default function App() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
   const [errorStep, setErrorStep] = useState(null) // step whose missing fields are being shown
-  const [availableIds, setAvailableIds] = useState(null) // units checked on the settings page; null while loading
+  const [units, setUnits] = useState(null) // units marked available on the settings page; null while loading
   const [unitsError, setUnitsError] = useState(false)
   const filesLoaded = useRef(false)
 
@@ -99,7 +99,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    loadAvailableIds().then(setAvailableIds, () => setUnitsError(true))
+    loadUnits({ availableOnly: true }).then(setUnits, () => setUnitsError(true))
   }, [])
 
   useEffect(() => { saveFields(data) }, [data])
@@ -119,11 +119,14 @@ export default function App() {
   const isFirst = step === 0
   const isLast = step === STEPS.length - 1
 
+  // The chosen unit, if it's still offered (a saved draft may name one that's since been taken off)
+  const selectedUnit = units?.find((u) => u.id === data.property_id)
+
   const validate = (stepIndex) => {
     const errors = []
 
     if (stepIndex === 0) {
-      if (!availableIds?.includes(data.property_id)) errors.push('Choose the unit you’re applying for.')
+      if (!selectedUnit) errors.push('Choose the unit you’re applying for.')
       if (!data.first_name.trim()) errors.push('First name is required.')
       if (!data.last_name.trim()) errors.push('Last name is required.')
       if (!data.email.trim()) errors.push('Email is required.')
@@ -227,7 +230,7 @@ export default function App() {
         .from('applications')
         .insert({
           id: appId,
-          property_address: findProperty(data.property_id).address,
+          property_address: selectedUnit.address,
           first_name: data.first_name,
           last_name: data.last_name,
           email: data.email,
@@ -406,11 +409,9 @@ export default function App() {
           <Field label="Unit You’re Applying For" required>
             <Select value={data.property_id} onChange={(e) => setData((d) => ({ ...d, property_id: e.target.value }))}>
               <option value="">
-                {unitsError ? 'Couldn’t load units. Please refresh.' : availableIds === null ? 'Loading units…' : 'Select a unit...'}
+                {unitsError ? 'Couldn’t load units. Please refresh.' : units === null ? 'Loading units…' : 'Select a unit...'}
               </option>
-              {PROPERTIES.filter((p) => availableIds?.includes(p.id)).map((p) => (
-                <option key={p.id} value={p.id}>{propertyLabel(p)}</option>
-              ))}
+              {(units || []).map((u) => <option key={u.id} value={u.id}>{unitLabel(u)}</option>)}
             </Select>
           </Field>
         </div>
@@ -433,7 +434,7 @@ export default function App() {
         {currentStep.id === 'household'  && <StepHousehold   data={data} onChange={setData} />}
         {currentStep.id === 'references' && <StepReferences  data={data} onChange={setData} />}
         {currentStep.id === 'documents'  && <StepDocuments   data={data} onChange={setData} />}
-        {currentStep.id === 'review'     && <StepReview      data={data} onNavigate={goTo} />}
+        {currentStep.id === 'review'     && <StepReview      data={data} unit={selectedUnit} onNavigate={goTo} />}
 
         {error && <div className="error-msg">{error}</div>}
 

@@ -1,5 +1,5 @@
-// Saves which units show in the application's dropdown, from the staff settings page
-// (apply.wlgre.com/?settings). Protected by the ADMIN_PASSWORD secret:
+// Saves the unit list from the staff settings page (apply.wlgre.com/?settings): adds, edits and
+// removes units and sets which show in the application's dropdown. Protected by the ADMIN_PASSWORD secret:
 //   npx supabase secrets set ADMIN_PASSWORD=...
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
@@ -22,29 +22,51 @@ async function samePassword(given: unknown) {
   return a.every((byte, i) => byte === b[i])
 }
 
+type Unit = { id: string, address: string, beds: number, baths: number, level: string, available: boolean }
+
+const validUnit = (u: any): u is Unit =>
+  typeof u?.id === 'string' && /^[a-z0-9-]{1,80}$/.test(u.id) &&
+  typeof u.address === 'string' && u.address.trim().length > 0 && u.address.length <= 200 &&
+  Number.isInteger(u.beds) && u.beds >= 1 && u.beds <= 10 &&
+  typeof u.baths === 'number' && u.baths >= 1 && u.baths <= 10 && Number.isInteger(u.baths * 2) &&
+  (u.level === 'ground' || u.level === 'upper') &&
+  typeof u.available === 'boolean'
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { password, available } = await req.json()
+    const { password, units } = await req.json()
 
     if (!(await samePassword(password))) {
       await new Promise((r) => setTimeout(r, 1000)) // slows down guessing
       return json({ error: 'Wrong password.' }, 401)
     }
-    if (!Array.isArray(available) || !available.every((id) => typeof id === 'string')) {
-      return json({ error: 'Invalid unit list.' }, 400)
+    // An empty list would delete every unit, which is never what the page means to do
+    if (!Array.isArray(units) || units.length === 0 || !units.every(validUnit)) {
+      return json({ error: 'Every unit needs an address, bedrooms, bathrooms and a level.' }, 400)
+    }
+    if (new Set(units.map((u) => u.id)).size !== units.length) {
+      return json({ error: 'Two units have the same address.' }, 400)
     }
 
-    const { data: units, error } = await db.from('units').select('id')
-    if (error) throw error
     const now = new Date().toISOString()
-    for (const { id } of units) {
-      const { error: updateErr } = await db.from('units').update({ available: available.includes(id), updated_at: now }).eq('id', id)
-      if (updateErr) throw updateErr
-    }
+    const { error: upsertErr } = await db.from('units').upsert(units.map((u) => ({
+      id: u.id,
+      address: u.address.trim(),
+      beds: u.beds,
+      baths: u.baths,
+      level: u.level,
+      available: u.available,
+      updated_at: now,
+    })))
+    if (upsertErr) throw upsertErr
+
+    // Units removed on the page
+    const { error: deleteErr } = await db.from('units').delete().not('id', 'in', `(${units.map((u) => u.id).join(',')})`)
+    if (deleteErr) throw deleteErr
 
     return json({ saved: true })
   } catch (err) {

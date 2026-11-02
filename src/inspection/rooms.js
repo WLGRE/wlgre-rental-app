@@ -1,4 +1,4 @@
-// Standard rooms and the items checked in each. The unit in the tenant's link (src/properties.js) builds
+// Standard rooms and the items checked in each. The unit in the tenant's link (the units table) builds
 // the list; they can add rooms it's missing. Move-outs reuse the move-in's rooms so every item lines up.
 
 export const CONDITIONS = [
@@ -45,7 +45,7 @@ export function makeRoom(type, name = ROOM_TYPES[type].label) {
   }
 }
 
-// The rooms for a unit from src/properties.js. baths may be a half number, e.g. 2.5 is two full baths and a half bath.
+// The rooms for a unit from the units table. baths may be a half number, e.g. 2.5 is two full baths and a half bath.
 export function standardRooms({ beds, baths, level }) {
   const fullBaths = Math.floor(baths)
   const halfBath = baths % 1 !== 0
