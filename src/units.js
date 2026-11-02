@@ -19,7 +19,8 @@ export async function loadUnits({ availableOnly = false } = {}) {
   return data.map((u) => ({ ...u, baths: Number(u.baths) }))
 }
 
-export const unitLabel = (u) => `${u.address} - ${u.beds}Bd/${u.baths}Ba ${u.level} unit`
+// e.g. "831 Willow Pointe Dr - 2Bd/2Ba Ground Unit"
+export const unitLabel = (u) => `${u.address} - ${u.beds}Bd/${u.baths}Ba ${u.level[0].toUpperCase()}${u.level.slice(1)} Unit`
 
 // A readable id for a new unit, used in inspection links (e.g. ?unit=839-willow-pointe-dr)
 export function newUnitId(address, takenIds) {
