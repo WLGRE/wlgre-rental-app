@@ -4,7 +4,7 @@ import StepPersonal from './steps/StepPersonal.jsx'
 import StepEmployment from './steps/StepEmployment.jsx'
 import StepHousehold from './steps/StepHousehold.jsx'
 import StepReferences from './steps/StepReferences.jsx'
-import StepDocuments from './steps/StepDocuments.jsx'
+import StepDocuments, { docsFor, isSelfEmployed } from './steps/StepDocuments.jsx'
 import StepReview from './steps/StepReview.jsx'
 import './App.css'
 import logo from './WLG_CREST.jpg'
@@ -15,13 +15,15 @@ const STEPS = [
   { id: 'employment',  label: 'Employment',  title: 'Employment & income',    subtitle: 'Your current job and earnings' },
   { id: 'household',   label: 'Household',   title: 'Household',              subtitle: 'Who will be living with you?' },
   { id: 'references',  label: 'References',  title: 'References',             subtitle: 'Two or more non-family contacts' },
-  { id: 'documents',   label: 'Documents',   title: 'Supporting documents',   subtitle: 'ID and your two most recent pay stubs' },
+  { id: 'documents',   label: 'Documents',   title: 'Supporting documents',   subtitle: 'ID and proof of income' },
   { id: 'review',      label: 'Review',      title: 'Review & submit',        subtitle: 'One last look before you submit' },
 ]
 
 const initialData = {
   first_name: '', last_name: '', email: '', phone: '',
-  current_address: '', move_reason: '', desired_move_in: '',
+  date_of_birth: '', ssn_last4: '',
+  address_street: '', address_city: '', address_state: '', address_zip: '',
+  move_reason: '', move_reason_detail: '', desired_move_in: '', move_in_flexible: false,
   employer_name: '', position: '', employment_status: '',
   employer_phone: '', job_years: '', job_months: '', monthly_income: '',
   prev_employer_name: '', prev_position: '', prev_employer_phone: '',
@@ -29,10 +31,14 @@ const initialData = {
   housing_assistance: '', assistance_type: '', assistance_amount: '',
   occupants: '', has_pets: false, pet_details: '', pet_info: {},
   household_members: [],
+  vehicles: [],
+  emergency_name: '', emergency_relationship: '', emergency_phone: '',
+  prior_evictions: '', eviction_details: '',
   personal_references: [
     { name: '', relationship: '', phone: '', email: '' },
     { name: '', relationship: '', phone: '', email: '' },
   ],
+  self_employed: null, // null = follow the Employment step's status
   files: {},
   identity: null,   // { session_id } once the Stripe ID check is submitted
   bank: null,       // { accounts: [{ id, institution, last4 }] } from Stripe Financial Connections
@@ -44,7 +50,9 @@ const testFile = (name) => new File(['%PDF-1.4\n% test document\n'], name, { typ
 const makeTestData = () => ({
   ...initialData,
   first_name: 'Test', last_name: 'Applicant', email: 'test@example.com', phone: '(555) 010-0100',
-  current_address: '123 Test St, Nashville, TN', move_reason: 'Test application',
+  date_of_birth: '1990-01-15', ssn_last4: '0000',
+  address_street: '123 Test St', address_city: 'Nashville', address_state: 'TN', address_zip: '37201',
+  move_reason: 'Relocation', move_reason_detail: 'Test application', move_in_flexible: true,
   desired_move_in: new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
   employer_name: 'Test Company', position: 'Manager', employment_status: 'Full-time',
   employer_phone: '(555) 010-0200', job_years: '3', job_months: '4', monthly_income: '6000',
@@ -53,6 +61,9 @@ const makeTestData = () => ({
   housing_assistance: false,
   occupants: '2', has_pets: true, pet_details: '', pet_info: { count: '1', type: 'Dog', breed: 'Labrador mix', weight: '45 lbs', neutered: 'yes' },
   household_members: [{ full_name: 'Test Partner', relationship: 'Spouse / partner', age: '34' }],
+  vehicles: [{ year: '2020', make: 'Toyota', model: 'Camry', plate: 'TEST123' }],
+  emergency_name: 'Emergency Contact', emergency_relationship: 'Sister', emergency_phone: '(555) 010-0600',
+  prior_evictions: 'no',
   personal_references: [
     { name: 'Reference One', relationship: 'Former landlord', phone: '(555) 010-0400', email: 'ref1@example.com' },
     { name: 'Reference Two', relationship: 'Coworker', phone: '(555) 010-0500', email: 'ref2@example.com' },
@@ -110,6 +121,14 @@ export default function App() {
       if (!data.email.trim()) errors.push('Email is required.')
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.push('Enter a valid email address.')
       if (!data.phone.trim()) errors.push('Phone number is required.')
+      if (!data.date_of_birth) errors.push('Date of birth is required.')
+      if (!/^\d{4}$/.test(data.ssn_last4)) errors.push('Enter the last 4 digits of your SSN.')
+      if (!data.address_street.trim()) errors.push('Street address is required.')
+      if (!data.address_city.trim()) errors.push('City is required.')
+      if (!data.address_state) errors.push('State is required.')
+      if (!/^\d{5}$/.test(data.address_zip)) errors.push('Enter a 5-digit zip code.')
+      if (!data.move_reason) errors.push('Reason for moving is required.')
+      else if (data.move_reason === 'Other' && !data.move_reason_detail.trim()) errors.push('Please explain your reason for moving.')
     }
 
     if (stepIndex === 1) {
@@ -129,6 +148,16 @@ export default function App() {
         if (!m.relationship?.trim()) errors.push(`Occupant ${i + 1} relationship is required.`)
         if (!m.age?.toString().trim()) errors.push(`Occupant ${i + 1} age is required.`)
       })
+      ;(data.vehicles || []).forEach((v, i) => {
+        if (!/^\d{4}$/.test(v.year)) errors.push(`Vehicle ${i + 1} year is required.`)
+        if (!v.make.trim()) errors.push(`Vehicle ${i + 1} make is required.`)
+        if (!v.model.trim()) errors.push(`Vehicle ${i + 1} model is required.`)
+        if (!v.plate.trim()) errors.push(`Vehicle ${i + 1} license plate is required.`)
+      })
+      if (!data.emergency_name.trim()) errors.push('Emergency contact name is required.')
+      if (!data.emergency_relationship.trim()) errors.push('Emergency contact relationship is required.')
+      if (!data.emergency_phone.trim()) errors.push('Emergency contact phone is required.')
+      if (!data.prior_evictions) errors.push('Please answer the eviction question.')
     }
 
     if (stepIndex === 3) {
@@ -138,12 +167,19 @@ export default function App() {
 
     if (stepIndex === 4) {
       if (!data.identity) errors.push('Please verify your ID with Stripe.')
-      if (!data.files?.paystub) errors.push('Your most recent pay stub is required.')
-      if (!data.files?.paystub2) errors.push('Your previous pay stub is required.')
+      docsFor(data).forEach((d) => {
+        if (d.required && !data.files?.[d.key]) errors.push(`${d.label} is required.`)
+      })
     }
 
     return errors
   }
+
+  // Share of the form steps (everything before Review) with no required fields left
+  const formSteps = STEPS.length - 1
+  const percentComplete = Math.round(
+    (STEPS.slice(0, formSteps).filter((_, i) => validate(i).length === 0).length / formSteps) * 100,
+  )
 
   // Recomputed on every render, so each message disappears as soon as the field is filled in
   const validationErrors = errorStep === step ? validate(step) : []
@@ -181,12 +217,29 @@ export default function App() {
           last_name: data.last_name,
           email: data.email,
           phone: data.phone,
-          current_address: data.current_address,
+          date_of_birth: data.date_of_birth,
+          ssn_last4: data.ssn_last4,
+          // Full address kept in current_address too, for the email and anything else that reads it
+          current_address: `${data.address_street}, ${data.address_city}, ${data.address_state} ${data.address_zip}`,
+          address_street: data.address_street,
+          address_city: data.address_city,
+          address_state: data.address_state,
+          address_zip: data.address_zip,
           move_reason: data.move_reason,
+          move_reason_detail: data.move_reason_detail || null,
           desired_move_in: data.desired_move_in || null,
+          move_in_flexible: data.move_in_flexible,
           occupants: data.occupants ? parseInt(data.occupants) : null,
           has_pets: data.has_pets,
           pet_details: data.pet_details,
+          pet_info: data.has_pets ? data.pet_info : null,
+          vehicles: data.vehicles,
+          emergency_name: data.emergency_name,
+          emergency_relationship: data.emergency_relationship,
+          emergency_phone: data.emergency_phone,
+          prior_evictions: data.prior_evictions === 'yes',
+          eviction_details: data.prior_evictions === 'yes' ? data.eviction_details || null : null,
+          self_employed: isSelfEmployed(data),
           identity_session_id: data.identity?.session_id ?? null,
           bank_account_ids: data.bank?.accounts.map((a) => a.id) ?? null,
           status: 'pending',
@@ -251,8 +304,11 @@ export default function App() {
         if (refErr) throw refErr
       }
 
+      // Only the uploads that apply (switching the self-employed toggle leaves the other set behind)
       const files = data.files || {}
-      for (const [docType, file] of Object.entries(files)) {
+      for (const { key: docType } of docsFor(data)) {
+        const file = files[docType]
+        if (!file) continue
         const ext = file.name.split('.').pop()
         const path = `${appId}/${docType}.${ext}`
         const { error: uploadErr } = await supabase.storage
@@ -337,35 +393,26 @@ export default function App() {
       </header>
 
       <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+        <div className="progress-fill" style={{ width: `${percentComplete}%` }} />
+      </div>
+      <div className="progress-label">
+        <span>Step {step + 1} of {STEPS.length} · {STEPS[step].label}</span>
+        <span>{percentComplete}% complete</span>
       </div>
 
       <main className="form-card">
 
-        {/* Requirements — two left-aligned columns, centered in card */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginBottom: '32px',
-          paddingBottom: '24px',
-          borderBottom: '1px solid var(--paper-border)',
-        }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'auto auto',
-            columnGap: '32px',
-            rowGap: '10px',
-            fontSize: '21px',
-            lineHeight: 1.3,
-          }}>
+        {/* Requirements — two left-aligned columns, centered in card (stacked on phones) */}
+        <div className="requirements">
+          <div className="requirements-grid">
             {[
               { label: 'Income Requirement', value: '3x Monthly Rent' },
               { label: 'Security Deposit',   value: '1x Monthly Rent' },
               { label: 'Background Check',   value: '$40 (Non-Refundable)' },
             ].map(({ label, value }) => (
               <React.Fragment key={label}>
-                <span style={{ color: 'var(--ink-muted)' }}>{label}</span>
-                <span style={{ fontWeight: '700', color: 'var(--ink)' }}>{value}</span>
+                <span className="requirements-label">{label}</span>
+                <span className="requirements-value">{value}</span>
               </React.Fragment>
             ))}
           </div>
@@ -410,7 +457,7 @@ export default function App() {
           )}
           {!isLast ? (
             <button className="btn-primary" onClick={next}>
-              Continue
+              Save &amp; Continue
             </button>
           ) : (
             <button className="btn-primary btn-submit" onClick={handleSubmit} disabled={submitting}>
@@ -421,7 +468,7 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
-        Step {step + 1} of {STEPS.length} &nbsp;·&nbsp; WLGRE Properties
+        WLGRE Properties
       </footer>
 
       {/* DEV ONLY — remove before going live */}

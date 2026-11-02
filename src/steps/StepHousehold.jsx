@@ -2,6 +2,7 @@ import React from 'react'
 import { Field, Input, Select } from '../components/FormElements.jsx'
 
 const emptyMember = () => ({ full_name: '', relationship: '', age: '' })
+const emptyVehicle = () => ({ year: '', make: '', model: '', plate: '' })
 
 export default function StepHousehold({ data, onChange }) {
   const set = (key) => (e) => onChange({ ...data, [key]: e.target.value })
@@ -21,6 +22,15 @@ export default function StepHousehold({ data, onChange }) {
     members.splice(i, 1)
     onChange({ ...data, household_members: members })
   }
+
+  const vehicles = data.vehicles || []
+  const setVehicle = (i, key) => (e) => {
+    const updated = [...vehicles]
+    updated[i] = { ...updated[i], [key]: key === 'plate' ? e.target.value.toUpperCase() : e.target.value }
+    onChange({ ...data, vehicles: updated })
+  }
+  const addVehicle = () => onChange({ ...data, vehicles: [...vehicles, emptyVehicle()] })
+  const removeVehicle = (i) => onChange({ ...data, vehicles: vehicles.filter((_, j) => j !== i) })
 
   const setPet = (key) => (e) => onChange({ ...data, pet_info: { ...(data.pet_info || {}), [key]: e.target.value } })
   const petInfo = data.pet_info || {}
@@ -122,6 +132,73 @@ export default function StepHousehold({ data, onChange }) {
       <button type="button" className="add-btn" onClick={addMember}>
         + Add occupant
       </button>
+
+      <div className="section-divider">
+        <span>Vehicles</span>
+      </div>
+
+      {vehicles.map((v, i) => (
+        <div key={i} className="member-card">
+          <div className="member-card-header">
+            <span>Vehicle {i + 1}</span>
+            <button type="button" className="remove-btn" onClick={() => removeVehicle(i)}>Remove</button>
+          </div>
+          <div className="field-row">
+            <Field label="Year" required>
+              <Input value={v.year} onChange={setVehicle(i, 'year')} inputMode="numeric" maxLength={4} placeholder="2020" />
+            </Field>
+            <Field label="Make" required>
+              <Input value={v.make} onChange={setVehicle(i, 'make')} placeholder="Toyota" />
+            </Field>
+          </div>
+          <div className="field-row">
+            <Field label="Model" required>
+              <Input value={v.model} onChange={setVehicle(i, 'model')} placeholder="Camry" />
+            </Field>
+            <Field label="License Plate" required>
+              <Input value={v.plate} onChange={setVehicle(i, 'plate')} placeholder="ABC1234" />
+            </Field>
+          </div>
+        </div>
+      ))}
+
+      <button type="button" className="add-btn" onClick={addVehicle}>
+        + Add vehicle
+      </button>
+
+      <div className="section-divider">
+        <span>Emergency contact</span>
+      </div>
+      <p className="field-hint">Someone who won’t be living with you.</p>
+
+      <Field label="Full Name" required>
+        <Input value={data.emergency_name} onChange={set('emergency_name')} placeholder="Full name" />
+      </Field>
+      <div className="field-row">
+        <Field label="Relationship" required>
+          <Input value={data.emergency_relationship} onChange={set('emergency_relationship')} placeholder="e.g. Sister" />
+        </Field>
+        <Field label="Phone" required>
+          <Input type="tel" value={data.emergency_phone} onChange={set('emergency_phone')} placeholder="(555) 000-0000" />
+        </Field>
+      </div>
+
+      <div className="section-divider">
+        <span>Rental history</span>
+      </div>
+
+      <Field label="Have You Ever Been Evicted?" required>
+        <Select value={data.prior_evictions} onChange={set('prior_evictions')}>
+          <option value="">Select...</option>
+          <option value="no">No</option>
+          <option value="yes">Yes</option>
+        </Select>
+      </Field>
+      {data.prior_evictions === 'yes' && (
+        <Field label="Please Explain (When And Why)">
+          <Input value={data.eviction_details} onChange={set('eviction_details')} placeholder="Tell us what happened..." />
+        </Field>
+      )}
     </div>
   )
 }

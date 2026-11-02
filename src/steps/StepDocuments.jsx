@@ -3,10 +3,34 @@ import { supabase } from '../supabase.js'
 import { stripePromise } from '../stripe.js'
 
 export const DOC_TYPES = [
-  { key: 'paystub', label: 'Pay stub — most recent', required: true },
-  { key: 'paystub2', label: 'Pay stub — previous', required: true },
-  { key: 'other', label: 'Other supporting document', required: false },
+  { key: 'paystub', label: 'Pay stub — most recent' },
+  { key: 'paystub2', label: 'Pay stub — second most recent' },
+  { key: 'form1099', label: '1099 or most recent tax return' },
+  { key: 'bank_statement', label: 'Bank statement — most recent' },
+  { key: 'bank_statement2', label: 'Bank statement — second most recent' },
+  { key: 'other', label: 'Other supporting document' },
 ]
+
+const label = (key) => DOC_TYPES.find((d) => d.key === key).label
+
+// Follows the Employment step's status until the applicant flips the toggle themselves
+export const isSelfEmployed = (data) => data.self_employed ?? data.employment_status === 'Self-employed'
+
+// The uploads this applicant needs: pay stubs, or for the self-employed a 1099 plus bank
+// statements (which a connected bank account replaces)
+export function docsFor(data) {
+  const docs = isSelfEmployed(data)
+    ? [
+        { key: 'form1099', required: true },
+        { key: 'bank_statement', required: !data.bank },
+        { key: 'bank_statement2', required: !data.bank },
+      ]
+    : [
+        { key: 'paystub', required: true },
+        { key: 'paystub2', required: true },
+      ]
+  return [...docs, { key: 'other', required: false }].map((d) => ({ ...d, label: label(d.key) }))
+}
 
 export default function StepDocuments({ data, onChange }) {
   const files = data.files || {}
@@ -99,7 +123,10 @@ export default function StepDocuments({ data, onChange }) {
       </div>
 
       <div className="upload-zone">
-        <div className="upload-label">Bank account (optional)</div>
+        <div className="upload-label">
+          Bank account
+          <span className="speed-badge">Speeds up approval</span>
+        </div>
         {data.bank ? (
           <div className="upload-success">
             <span className="upload-check">✓</span>
@@ -117,17 +144,27 @@ export default function StepDocuments({ data, onChange }) {
             <button type="button" className="upload-btn" onClick={connectBank} disabled={busy !== null}>
               {busy === 'bank' ? 'Opening…' : 'Connect bank account'}
             </button>
-            <span className="upload-hint">Instead of a bank statement</span>
+            <span className="upload-hint">Verifies your income in about a minute</span>
           </div>
         )}
         {stripeError.bank && <p className="upload-error">{stripeError.bank}</p>}
       </div>
 
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={isSelfEmployed(data)}
+          onChange={(e) => onChange({ ...data, self_employed: e.target.checked })}
+        />
+        I’m self-employed (upload a 1099 and bank statements instead of pay stubs)
+      </label>
+
       <p className="step-note">
         Upload clear photos or scans. Accepted formats: PDF, JPG, PNG. Max 10MB per file.
+        {isSelfEmployed(data) && data.bank && ' Bank statements are optional since you connected your bank.'}
       </p>
 
-      {DOC_TYPES.map(({ key, label, required }) => (
+      {docsFor(data).map(({ key, label, required }) => (
         <div key={key} className="upload-zone">
           <div className="upload-label">
             {label}

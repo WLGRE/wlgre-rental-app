@@ -104,6 +104,7 @@ serve(async (req) => {
     row('Employer', emp.employer_name),
     row('Position', emp.position),
     row('Status', emp.employment_status),
+    row('Income documents', app.self_employed ? '1099 + bank statements (self-employed)' : 'Pay stubs'),
     row('Monthly income', emp.monthly_income ? `$${Number(emp.monthly_income).toLocaleString()}` : ''),
     row('Employer phone', emp.employer_phone),
     row('Housing assistance', emp.housing_assistance ? 'Yes' : 'No'),
@@ -115,6 +116,7 @@ serve(async (req) => {
   const householdHtml = section('Household', [
     row('Total occupants', app.occupants),
     row('Pets', app.has_pets ? 'Yes' : 'No'),
+    row('Vehicles', (app.vehicles || []).map((v: any) => `${v.year} ${v.make} ${v.model} (${v.plate})`).join('<br>') || 'None'),
     ...(household.length > 0 ? household.map((m: any, i: number) =>
       row(`Occupant ${i + 1}`, `${m.full_name} (${m.relationship}) — DOB: ${m.date_of_birth}`)
     ) : [row('Additional occupants', 'None')]),
@@ -152,8 +154,10 @@ serve(async (req) => {
             row('Email', email),
             row('Phone', app.phone),
             row('Current address', app.current_address),
-            row('Reason for moving', app.move_reason),
-            row('Desired move-in', app.desired_move_in),
+            row('Reason for moving', [app.move_reason, app.move_reason_detail].filter(Boolean).join(' — ')),
+            row('Desired move-in', app.desired_move_in ? `${app.desired_move_in}${app.move_in_flexible ? ' (flexible)' : ''}` : ''),
+            row('Emergency contact', app.emergency_name ? `${app.emergency_name} (${app.emergency_relationship}) · ${app.emergency_phone}` : ''),
+            row('Prior evictions', app.prior_evictions ? `Yes${app.eviction_details ? ` — ${app.eviction_details}` : ''}` : 'No'),
           ].join(''))}
 
           ${employmentHtml}
