@@ -3,6 +3,7 @@ import { supabase } from '../supabase.js'
 import { stripePromise } from '../stripe.js'
 
 export const DOC_TYPES = [
+  { key: 'photo_id', label: 'Government-issued photo ID', hint: 'Front of your driver’s license, state ID or passport' },
   { key: 'paystub', label: 'Pay stub — most recent' },
   { key: 'paystub2', label: 'Pay stub — second most recent' },
   { key: 'form1099', label: '1099 or most recent tax return' },
@@ -11,15 +12,23 @@ export const DOC_TYPES = [
   { key: 'other', label: 'Other supporting document' },
 ]
 
-const label = (key) => DOC_TYPES.find((d) => d.key === key).label
+const MAX_FILE_BYTES = 10 * 1024 * 1024
+
+// Off: applicants upload a photo of their ID instead. Stripe Identity can't be used to decide housing
+// eligibility unless Stripe confirms otherwise; turning this on also needs Identity activated on the
+// account and the Identity permission added to the secret key.
+export const STRIPE_ID_ENABLED = false
+
+const docType = (key) => DOC_TYPES.find((d) => d.key === key)
 
 // Follows the Employment step's status until the applicant flips the toggle themselves
 export const isSelfEmployed = (data) => data.self_employed ?? data.employment_status === 'Self-employed'
 
-// The uploads this applicant needs: pay stubs, or for the self-employed a 1099 plus bank
-// statements (which a connected bank account replaces)
+// The uploads this applicant needs: a photo ID, then pay stubs, or for the self-employed a 1099
+// plus bank statements (which a connected bank account replaces)
 export function docsFor(data) {
-  const docs = isSelfEmployed(data)
+  const id = STRIPE_ID_ENABLED ? [] : [{ key: 'photo_id', required: true }]
+  const income = isSelfEmployed(data)
     ? [
         { key: 'form1099', required: true },
         { key: 'bank_statement', required: !data.bank },
@@ -29,19 +38,36 @@ export function docsFor(data) {
         { key: 'paystub', required: true },
         { key: 'paystub2', required: true },
       ]
-  return [...docs, { key: 'other', required: false }].map((d) => ({ ...d, label: label(d.key) }))
+  return [...id, ...income, { key: 'other', required: false }].map((d) => ({ ...docType(d.key), ...d }))
 }
 
 export default function StepDocuments({ data, onChange }) {
   const files = data.files || {}
   const [busy, setBusy] = useState(null)
   const [stripeError, setStripeError] = useState({})
+  const [fileError, setFileError] = useState({})
+  const [dragOver, setDragOver] = useState(null)
+
+  const addFile = (key, file) => {
+    if (!file) return
+    const ok = /\.(pdf|jpe?g|png)$/i.test(file.name)
+    const error = !ok ? 'Please upload a PDF, JPG or PNG.'
+      : file.size > MAX_FILE_BYTES ? 'That file is over 10MB. Please upload a smaller copy.'
+      : null
+    setFileError((e) => ({ ...e, [key]: error }))
+    if (!error) onChange({ ...data, files: { ...files, [key]: file } })
+  }
 
   const handleFile = (key) => (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    onChange({ ...data, files: { ...files, [key]: file } })
+    addFile(key, e.target.files[0])
+    e.target.value = '' // so picking the same file again after an error still fires onChange
   }
+
+  const dropProps = (key) => ({
+    onDragOver: (e) => { e.preventDefault(); setDragOver(key) },
+    onDragLeave: () => setDragOver(null),
+    onDrop: (e) => { e.preventDefault(); setDragOver(null); addFile(key, e.dataTransfer.files[0]) },
+  })
 
   // Asks a Supabase function to start a Stripe session and returns its client secret
   const startSession = async (fn) => {
@@ -98,10 +124,10 @@ export default function StepDocuments({ data, onChange }) {
   return (
     <div className="step-fields">
       <p className="step-note">
-        ID and bank checks are handled securely by Stripe. We never see your bank login.
+        {STRIPE_ID_ENABLED ? 'ID and bank checks are' : 'Bank connections are'} handled securely by Stripe. We never see your bank login.
       </p>
 
-      <div className="upload-zone">
+      {STRIPE_ID_ENABLED && <div className="upload-zone">
         <div className="upload-label">
           Government-issued ID
           <span className="req-badge">Required</span>
@@ -120,7 +146,7 @@ export default function StepDocuments({ data, onChange }) {
           </div>
         )}
         {stripeError.identity && <p className="upload-error">{stripeError.identity}</p>}
-      </div>
+      </div>}
 
       <div className="upload-zone">
         <div className="upload-label">
@@ -164,7 +190,7 @@ export default function StepDocuments({ data, onChange }) {
         {isSelfEmployed(data) && data.bank && ' Bank statements are optional since you connected your bank.'}
       </p>
 
-      {docsFor(data).map(({ key, label, required }) => (
+      {docsFor(data).map(({ key, label, hint, required }) => (
         <div key={key} className="upload-zone">
           <div className="upload-label">
             {label}
@@ -187,7 +213,7 @@ export default function StepDocuments({ data, onChange }) {
               </button>
             </div>
           ) : (
-            <label className="upload-input-label">
+            <label className={`upload-input-label ${dragOver === key ? 'drag-over' : ''}`} {...dropProps(key)}>
               <input
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
@@ -195,9 +221,10 @@ export default function StepDocuments({ data, onChange }) {
                 style={{ display: 'none' }}
               />
               <span className="upload-btn">Choose file</span>
-              <span className="upload-hint">or drag and drop</span>
+              <span className="upload-hint">{hint || 'or drag and drop'}</span>
             </label>
           )}
+          {fileError[key] && <p className="upload-error">{fileError[key]}</p>}
         </div>
       ))}
     </div>

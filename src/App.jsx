@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase.js'
 import StepPersonal from './steps/StepPersonal.jsx'
-import StepEmployment from './steps/StepEmployment.jsx'
+import StepEmployment, { formatJobTime } from './steps/StepEmployment.jsx'
 import StepHousehold from './steps/StepHousehold.jsx'
 import StepReferences from './steps/StepReferences.jsx'
-import StepDocuments, { docsFor, isSelfEmployed } from './steps/StepDocuments.jsx'
+import StepDocuments, { docsFor, isSelfEmployed, STRIPE_ID_ENABLED } from './steps/StepDocuments.jsx'
 import StepReview from './steps/StepReview.jsx'
 import './App.css'
 import logo from './WLG_CREST.jpg'
@@ -68,14 +68,12 @@ const makeTestData = () => ({
     { name: 'Reference One', relationship: 'Former landlord', phone: '(555) 010-0400', email: 'ref1@example.com' },
     { name: 'Reference Two', relationship: 'Coworker', phone: '(555) 010-0500', email: 'ref2@example.com' },
   ],
-  files: { paystub: testFile('test-paystub.pdf'), paystub2: testFile('test-paystub-previous.pdf') },
-  identity: { session_id: null }, // skips the Stripe ID check
+  files: { photo_id: testFile('test-id.pdf'), paystub: testFile('test-paystub.pdf'), paystub2: testFile('test-paystub-previous.pdf') },
+  identity: STRIPE_ID_ENABLED ? { session_id: null } : null, // skips the Stripe ID check
 })
 
 // Each step has its own #hash so links and the browser's back/forward buttons move between steps
 const stepFromHash = () => Math.max(0, STEPS.findIndex((s) => `#${s.id}` === window.location.hash))
-
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 export default function App() {
   const [step, setStep] = useState(stepFromHash)
@@ -137,6 +135,10 @@ export default function App() {
       else if (isNaN(data.monthly_income) || Number(data.monthly_income) < 0) errors.push('Enter a valid monthly income.')
       if (data.job_years === '' || data.job_years === null) errors.push('Time at current job (years) is required.')
       if (data.prev_job_years === '' || data.prev_job_years === null) errors.push('Time at previous job (years) is required.')
+      if (data.housing_assistance === true) {
+        if (!data.assistance_type) errors.push('Housing assistance program is required.')
+        if (data.assistance_amount === '' || isNaN(data.assistance_amount) || Number(data.assistance_amount) < 0) errors.push('Enter your monthly voucher amount.')
+      }
     }
 
     if (stepIndex === 2) {
@@ -166,7 +168,7 @@ export default function App() {
     }
 
     if (stepIndex === 4) {
-      if (!data.identity) errors.push('Please verify your ID with Stripe.')
+      if (STRIPE_ID_ENABLED && !data.identity) errors.push('Please verify your ID with Stripe.')
       docsFor(data).forEach((d) => {
         if (d.required && !data.files?.[d.key]) errors.push(`${d.label} is required.`)
       })
@@ -209,10 +211,12 @@ export default function App() {
     setSubmitting(true)
     setError(null)
     try {
-      // Insert application and return only the id
-      const { data: appRows, error: appErr } = await supabase
+      // The id is made here because the public key can add applications but not read them back
+      const appId = crypto.randomUUID()
+      const { error: appErr } = await supabase
         .from('applications')
         .insert({
+          id: appId,
           first_name: data.first_name,
           last_name: data.last_name,
           email: data.email,
@@ -244,10 +248,8 @@ export default function App() {
           bank_account_ids: data.bank?.accounts.map((a) => a.id) ?? null,
           status: 'pending',
         })
-        .select('id')
 
       if (appErr) throw appErr
-      const appId = appRows[0].id
 
       if (data.household_members?.length > 0) {
         const { error: hmErr } = await supabase
@@ -262,15 +264,9 @@ export default function App() {
       }
 
       if (data.employer_name) {
-        const jobTime = [
-          data.job_years !== '' ? `${data.job_years} yr` : null,
-          data.job_months !== '' ? `${MONTHS[data.job_months]}` : null,
-        ].filter(Boolean).join(', ')
-
-        const prevJobTime = [
-          data.prev_job_years !== '' ? `${data.prev_job_years} yr` : null,
-          data.prev_job_months !== '' ? `${MONTHS[data.prev_job_months]}` : null,
-        ].filter(Boolean).join(', ')
+        const jobTime = formatJobTime(data.job_years, data.job_months)
+        const prevJobTime = formatJobTime(data.prev_job_years, data.prev_job_months)
+        const assisted = data.housing_assistance === true
 
         const { error: empErr } = await supabase
           .from('employment_records')
@@ -286,6 +282,9 @@ export default function App() {
             prev_position: data.prev_position || null,
             prev_employer_phone: data.prev_employer_phone || null,
             prev_years_at_job: prevJobTime || null,
+            housing_assistance: assisted,
+            assistance_type: assisted ? data.assistance_type : null,
+            assistance_amount: assisted ? parseFloat(data.assistance_amount) : null,
           })
         if (empErr) throw empErr
       }
@@ -316,21 +315,18 @@ export default function App() {
           .upload(path, file)
         if (uploadErr) throw uploadErr
 
-        await supabase.from('documents').insert({
+        const { error: docErr } = await supabase.from('documents').insert({
           application_id: appId,
           file_name: file.name,
           storage_path: path,
           doc_type: docType,
         })
+        if (docErr) throw docErr
       }
 
+      // The function looks up the applicant's name and email from the saved application
       await supabase.functions.invoke('send-confirmation-email', {
-        body: {
-          email: data.email,
-          firstName: data.first_name,
-          lastName: data.last_name,
-          applicationId: appId,
-        }
+        body: { applicationId: appId },
       })
 
       clearDraft()

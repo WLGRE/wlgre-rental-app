@@ -1,5 +1,6 @@
 import React from 'react'
-import { docsFor } from './StepDocuments.jsx'
+import { docsFor, STRIPE_ID_ENABLED } from './StepDocuments.jsx'
+import { formatJobTime } from './StepEmployment.jsx'
 
 function ReviewSection({ title, rows, onNavigate }) {
   return (
@@ -50,7 +51,12 @@ export default function StepReview({ data, onNavigate }) {
         ['Status', data.employment_status],
         ['Monthly income', data.monthly_income ? `$${Number(data.monthly_income).toLocaleString()}` : ''],
         ['Employer phone', data.employer_phone],
-        ['Years at job', data.years_at_job],
+        ['Time at job', formatJobTime(data.job_years, data.job_months)],
+        ['Previous employer', [data.prev_employer_name, data.prev_position].filter(Boolean).join(' — ')],
+        ['Time at previous job', formatJobTime(data.prev_job_years, data.prev_job_months)],
+        ['Housing assistance', data.housing_assistance === true
+          ? `Yes — ${data.assistance_type}${data.assistance_amount ? `, $${Number(data.assistance_amount).toLocaleString()}/mo` : ''}`
+          : data.housing_assistance === false ? 'No' : ''],
       ]} />
 
       <ReviewSection title="Household" onNavigate={() => onNavigate(2)} rows={[
@@ -87,10 +93,12 @@ export default function StepReview({ data, onNavigate }) {
 
       <div className="review-section">
         <h3 className="review-section-title">Documents</h3>
-        <div className="review-row">
-          <span className="review-label">ID verification</span>
-          <span className="review-value">{data.identity ? '✓ Submitted to Stripe' : 'Not started'}</span>
-        </div>
+        {STRIPE_ID_ENABLED && (
+          <div className="review-row">
+            <span className="review-label">ID verification</span>
+            <span className="review-value">{data.identity ? '✓ Submitted to Stripe' : 'Not started'}</span>
+          </div>
+        )}
         {data.bank && (
           <div className="review-row">
             <span className="review-label">Bank account</span>

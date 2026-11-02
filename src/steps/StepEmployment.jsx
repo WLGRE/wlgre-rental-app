@@ -3,6 +3,12 @@ import { Field, Input, Select } from '../components/FormElements.jsx'
 
 const YEARS = Array.from({ length: 31 }, (_, i) => i)
 
+// "3 yr, 4 mo" from the Years / Months dropdowns (either may be blank)
+export const formatJobTime = (years, months) => [
+  years !== '' && years != null ? `${years} yr` : null,
+  months !== '' && months != null ? `${months} mo` : null,
+].filter(Boolean).join(', ')
+
 export default function StepEmployment({ data, onChange }) {
   const set = (key) => (e) => onChange({ ...data, [key]: e.target.value })
   const setBool = (key) => (e) => onChange({ ...data, [key]: e.target.value === 'true' })

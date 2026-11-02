@@ -316,6 +316,13 @@
   align-items: center;
   gap: 12px;
   cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.upload-input-label.drag-over {
+  outline: 2px dashed var(--gold);
+  outline-offset: 6px;
+  background: var(--gold-bg);
 }
 
 .upload-btn {
